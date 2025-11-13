@@ -53,8 +53,8 @@ export default function SettingsScreen() {
         await navigator.clipboard.writeText(window.location.origin);
         toast.success("Link copied to clipboard!");
       }
-    } catch (error: any) {
-      if (error.name !== "AbortError") {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name !== "AbortError") {
         toast.error("Could not share the app");
       }
     }

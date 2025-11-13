@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, FieldValue } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { calculateImageHash, getUserIpAddress, getDeviceId } from "@/utils/consent";
 
@@ -35,7 +35,7 @@ export async function saveConsentRecord(
     const deviceId = getDeviceId();
 
     // Create consent record
-    const consentData: Omit<ConsentData, "consentTimestamp"> & { consentTimestamp: any } = {
+    const consentData: Omit<ConsentData, "consentTimestamp"> & { consentTimestamp: FieldValue } = {
       userId,
       imageHash,
       consentToProcessing,

@@ -62,8 +62,8 @@ export default function ResultsScreen() {
         });
 
         toast.success("Shared successfully!");
-      } catch (error: any) {
-        if (error.name !== "AbortError") {
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name !== "AbortError") {
           console.error("Share error:", error);
           toast.error("Failed to share image");
         }

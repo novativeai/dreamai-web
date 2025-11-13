@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, FieldValue } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export interface DeletionFeedback {
@@ -6,7 +6,7 @@ export interface DeletionFeedback {
   reasonId: string;
   reasonText: string;
   feedbackText?: string;
-  timestamp: any;
+  timestamp: FieldValue;
 }
 
 /**

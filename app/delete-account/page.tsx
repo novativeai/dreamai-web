@@ -119,12 +119,13 @@ export default function DeleteAccountScreen() {
       // Delete user account
       await deleteUser(user);
       setView("success");
-    } catch (error: any) {
-      if (error.code === "auth/requires-recent-login") {
+    } catch (error: unknown) {
+      const firebaseError = error as { code?: string; message?: string };
+      if (firebaseError.code === "auth/requires-recent-login") {
         setShowRequiresRecentLoginMessage(true);
         toast.error("Recent login is required");
       } else {
-        toast.error(error.message || "An unknown error occurred. Please try again.");
+        toast.error(firebaseError.message || "An unknown error occurred. Please try again.");
       }
     } finally {
       setLoadingOperation(null);

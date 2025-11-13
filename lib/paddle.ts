@@ -14,13 +14,13 @@ export async function initPaddle(): Promise<Paddle | null> {
   }
 
   try {
-    paddleInstance = await initializePaddle({
+    paddleInstance = (await initializePaddle({
       token: clientToken,
       environment,
       eventCallback: (event) => {
         console.log("Paddle event:", event);
       },
-    });
+    })) || null;
     return paddleInstance;
   } catch (error) {
     console.error("Failed to initialize Paddle:", error);
