@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useCredits } from "@/contexts/CreditContext";
 import { ROUTES } from "@/utils/routes";
-import { APP_VERSION, FOOTER_TEXT, SUPPORT_EMAIL } from "@/constants";
+import { APP_VERSION, FOOTER_TEXT, SUPPORT_EMAIL, APP_NAME } from "@/constants";
 import toast from "react-hot-toast";
 
 interface SettingItem {
