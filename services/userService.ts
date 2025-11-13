@@ -168,15 +168,39 @@ export async function updateAgeVerification(userId: string, verified: boolean, d
 export async function updateTermsAcceptance(userId: string, accepted: boolean): Promise<void> {
   try {
     const userRef = doc(db, "users", userId);
-    await setDoc(
-      userRef,
-      {
+    const userSnap = await getDoc(userRef);
+
+    // If user document doesn't exist, create it first
+    if (!userSnap.exists()) {
+      const user = auth.currentUser;
+      await setDoc(userRef, {
+        uid: userId,
+        email: user?.email || null,
+        displayName: user?.displayName || null,
+        credits: 5, // Free credits for new users
+        isPremium: false,
+        premium_status: null,
+        subscription_id: null,
+        subscription_status: null,
+        paddle_customer_id: null,
+        ageVerified: false,
         termsAccepted: accepted,
         termsAcceptedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+      });
+    } else {
+      // Update existing document
+      await setDoc(
+        userRef,
+        {
+          termsAccepted: accepted,
+          termsAcceptedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
   } catch (error) {
     console.error("Error updating terms acceptance:", error);
     throw error;
