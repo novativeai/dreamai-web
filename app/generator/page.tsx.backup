@@ -1,0 +1,377 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { auth } from "@/lib/firebase";
+import { useCredits } from "@/contexts/CreditContext";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { generateImage } from "@/lib/api";
+import { ROUTES } from "@/utils/routes";
+import { STYLE_CATEGORIES, PLACEHOLDER_IMAGE, APP_LOGO_WHITE, PREMIUM_ICON } from "@/constants";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import toast from "react-hot-toast";
+
+export default function GeneratorScreen() {
+  const router = useRouter();
+  const { credits, isPremium, isLoading: creditsLoading, decrementCredits } = useCredits();
+  const { selectedImage, imagePreview, handleImageSelect, clearImage, isValidImage } = useImageUpload();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [isStyleModalOpen, setIsStyleModalOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showTips, setShowTips] = useState(false);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) {
+      router.replace(ROUTES.LOGIN);
+    }
+  }, [router]);
+
+  const openStyleSelector = (category: string) => {
+    setSelectedCategory(category);
+    setIsStyleModalOpen(true);
+  };
+
+  const selectStyle = (styleKey: string) => {
+    setSelectedStyle(styleKey);
+    setIsStyleModalOpen(false);
+  };
+
+  const getSelectedStyleInfo = () => {
+    if (!selectedStyle) return null;
+
+    for (const category of Object.values(STYLE_CATEGORIES)) {
+      const style = category.options.find((s) => s.key === selectedStyle);
+      if (style) return style;
+    }
+    return null;
+  };
+
+  const handleGenerate = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("Please log in to generate images");
+      router.replace(ROUTES.LOGIN);
+      return;
+    }
+
+    if (!selectedImage) {
+      toast.error("Please upload an image");
+      return;
+    }
+
+    if (!selectedStyle) {
+      toast.error("Please select a style");
+      return;
+    }
+
+    const styleInfo = getSelectedStyleInfo();
+    if (!styleInfo) {
+      toast.error("Invalid style selected");
+      return;
+    }
+
+    // Check if style is premium
+    if (styleInfo.isPremium && !isPremium) {
+      toast.error("This style requires Premium. Upgrade to unlock!");
+      router.push(ROUTES.PREMIUM);
+      return;
+    }
+
+    // Check credits
+    if (!isPremium && credits < 1) {
+      toast.error("No credits remaining. Purchase more or upgrade to Premium!");
+      router.push(ROUTES.PREMIUM);
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("image1", selectedImage);
+      formData.append("prompt", styleInfo.prompt);
+      formData.append("userId", user.uid);
+
+      const imageBlob = await generateImage(formData);
+
+      // Decrement credits
+      if (!isPremium) {
+        await decrementCredits(1);
+      }
+
+      // Convert blob to URL and navigate to results
+      const imageUrl = URL.createObjectURL(imageBlob);
+      sessionStorage.setItem("generatedImage", imageUrl);
+      router.push(ROUTES.RESULTS);
+
+      toast.success("Image generated successfully!");
+    } catch (error) {
+      console.error("Generation error:", error);
+      toast.error("Failed to generate image. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const styleInfo = getSelectedStyleInfo();
+
+  if (creditsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      {/* Header */}
+      <header className="bg-neutral-gray-900 border-b border-neutral-gray-800 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image src={APP_LOGO_WHITE} alt="DreamAI" width={40} height={40} />
+            <h1 className="text-xl font-bold">DreamAI</h1>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {!isPremium && (
+              <div className="bg-neutral-gray-800 px-4 py-2 rounded-full flex items-center gap-2">
+                <span className="text-sm font-semibold">{credits} Credits</span>
+              </div>
+            )}
+
+            {isPremium && (
+              <div className="bg-brand px-4 py-2 rounded-full flex items-center gap-2">
+                <Image src={PREMIUM_ICON} alt="Premium" width={16} height={16} />
+                <span className="text-sm font-semibold">Premium</span>
+              </div>
+            )}
+
+            <button
+              onClick={() => router.push(ROUTES.SETTINGS)}
+              className="p-2 hover:bg-neutral-gray-800 rounded-full transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto px-6 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Image Upload Section */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-4">Upload Your Photo</h2>
+            <div className="relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+                id="image-upload"
+              />
+              <div
+                onClick={() => {
+                  if (!imagePreview && fileInputRef.current) {
+                    fileInputRef.current.click();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && !imagePreview && fileInputRef.current) {
+                    e.preventDefault();
+                    fileInputRef.current.click();
+                  }
+                }}
+                className="block w-full aspect-square max-w-md mx-auto bg-neutral-gray-900 border-2 border-dashed border-neutral-gray-700 rounded-2xl cursor-pointer hover:border-brand transition-colors overflow-hidden"
+              >
+                {imagePreview ? (
+                  <div className="relative w-full h-full">
+                    <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        clearImage();
+                      }}
+                      className="absolute top-2 right-2 bg-black/60 p-2 rounded-full hover:bg-black/80"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full p-8">
+                    <Image src={PLACEHOLDER_IMAGE} alt="Upload" width={80} height={80} className="mb-4 opacity-50" />
+                    <p className="text-neutral-gray-400 text-center">Tap to upload your photo</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => setShowTips(true)}
+              className="mt-4 text-brand hover:text-brand-light transition-colors text-sm mx-auto block"
+            >
+              Tips for best results →
+            </button>
+          </div>
+
+          {/* Style Categories */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold mb-4">Choose Your Style</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Object.entries(STYLE_CATEGORIES).map(([key, category]) => (
+                <button
+                  key={key}
+                  onClick={() => openStyleSelector(key)}
+                  className="card hover:border-brand transition-all p-4 text-center"
+                >
+                  <h3 className="font-semibold">{category.label}</h3>
+                  <p className="text-xs text-neutral-gray-400 mt-1">{category.options.length} styles</p>
+                </button>
+              ))}
+            </div>
+
+            {styleInfo && (
+              <div className="mt-4 card p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-neutral-gray-400">Selected Style:</p>
+                  <p className="font-semibold">{styleInfo.title}</p>
+                </div>
+                {styleInfo.isPremium && (
+                  <span className="premium-badge">
+                    <Image src={PREMIUM_ICON} alt="Premium" width={12} height={12} />
+                    Premium
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Generate Button */}
+          <Button
+            onClick={handleGenerate}
+            disabled={!isValidImage || !selectedStyle || isGenerating}
+            isLoading={isGenerating}
+            className="w-full max-w-md mx-auto block"
+            size="lg"
+          >
+            {isGenerating ? "Generating..." : "Generate Image"}
+          </Button>
+
+          {!isPremium && (
+            <p className="text-center text-sm text-neutral-gray-400 mt-4">
+              {credits} credit{credits !== 1 ? "s" : ""} remaining
+            </p>
+          )}
+        </div>
+      </main>
+
+      {/* Style Selection Modal */}
+      <Modal
+        isOpen={isStyleModalOpen}
+        onClose={() => setIsStyleModalOpen(false)}
+        title={selectedCategory ? STYLE_CATEGORIES[selectedCategory]?.label : "Select Style"}
+        maxWidth="lg"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+          {selectedCategory &&
+            STYLE_CATEGORIES[selectedCategory]?.options.map((style) => (
+              <button
+                key={style.key}
+                onClick={() => selectStyle(style.key)}
+                className={`card p-4 text-left hover:border-brand transition-all ${
+                  selectedStyle === style.key ? "border-brand bg-brand/10" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <h4 className="font-semibold text-sm">{style.title}</h4>
+                  {style.isPremium && !isPremium && (
+                    <span className="premium-badge text-xs">
+                      <Image src={PREMIUM_ICON} alt="Premium" width={10} height={10} />
+                      Pro
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-neutral-gray-400 line-clamp-2">{style.prompt}</p>
+              </button>
+            ))}
+        </div>
+      </Modal>
+
+      {/* Tips Modal */}
+      {showTips && (
+        <Modal
+          isOpen={showTips}
+          onClose={() => setShowTips(false)}
+          title="Tips for Best Results"
+          maxWidth="md"
+        >
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold mb-1">High Resolution</h4>
+              <p className="text-sm text-neutral-gray-400">
+                Use high-quality images for more detailed and realistic results.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-1">Frontal View</h4>
+              <p className="text-sm text-neutral-gray-400">
+                Take photos directly from the front for better facial recognition. Only one face should be visible.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-1">Neutral Expression</h4>
+              <p className="text-sm text-neutral-gray-400">
+                Relaxed facial expressions without strong emotions lead to more consistent results.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-1">Good Lighting</h4>
+              <p className="text-sm text-neutral-gray-400">
+                Ensure your face is well-lit with even lighting for best quality.
+              </p>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}

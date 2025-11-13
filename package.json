@@ -1,0 +1,38 @@
+{
+  "name": "dreamai-nextjs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@paddle/paddle-js": "^1.4.2",
+    "@types/react-input-mask": "^3.0.6",
+    "axios": "^1.8.1",
+    "date-fns": "^4.1.0",
+    "firebase": "^11.10.0",
+    "framer-motion": "^12.23.24",
+    "next": "^15.1.8",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.4.1",
+    "react-icons": "^5.5.0",
+    "react-input-mask": "^2.0.4",
+    "swiper": "^12.0.3",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.8",
+    "postcss": "^8",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5"
+  }
+}
