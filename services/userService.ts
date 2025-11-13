@@ -121,16 +121,41 @@ export async function createUserProfile(userId: string, email: string, displayNa
 export async function updateAgeVerification(userId: string, verified: boolean, dateOfBirth: string): Promise<void> {
   try {
     const userRef = doc(db, "users", userId);
-    await setDoc(
-      userRef,
-      {
+    const userSnap = await getDoc(userRef);
+
+    // If user document doesn't exist, create it first
+    if (!userSnap.exists()) {
+      const user = auth.currentUser;
+      await setDoc(userRef, {
+        uid: userId,
+        email: user?.email || null,
+        displayName: user?.displayName || null,
+        credits: 5, // Free credits for new users
+        isPremium: false,
+        premium_status: null,
+        subscription_id: null,
+        subscription_status: null,
+        paddle_customer_id: null,
         ageVerified: verified,
+        termsAccepted: false,
         dateOfBirth,
         ageVerifiedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+      });
+    } else {
+      // Update existing document
+      await setDoc(
+        userRef,
+        {
+          ageVerified: verified,
+          dateOfBirth,
+          ageVerifiedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
   } catch (error) {
     console.error("Error updating age verification:", error);
     throw error;

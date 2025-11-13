@@ -111,10 +111,12 @@ export default function AgeScreen() {
       setIsSaving(true);
       try {
         await updateAgeVerification(user.uid, true, birthDate);
+        toast.success("Age verification successful!");
         router.replace(ROUTES.TERMS_SERVICE);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to save age verification:", error);
-        toast.error("Could not save your verification. Please try again.");
+        const errorMessage = error instanceof Error ? error.message : "Could not save your verification. Please try again.";
+        toast.error(errorMessage);
         setIsSaving(false);
       }
     } else if (isOver18 === false) {
