@@ -33,7 +33,7 @@ export type RouteValue = typeof ROUTES[keyof typeof ROUTES];
  * Check if user can access a protected route
  */
 export function isProtectedRoute(path: string): boolean {
-  const protectedRoutes = [
+  const protectedRoutes: string[] = [
     ROUTES.GENERATOR,
     ROUTES.RESULTS,
     ROUTES.PREMIUM,
@@ -41,7 +41,7 @@ export function isProtectedRoute(path: string): boolean {
     ROUTES.DELETE_ACCOUNT,
     ROUTES.GENERATOR_TIPS,
   ];
-  return protectedRoutes.includes(path as RouteValue);
+  return protectedRoutes.includes(path);
 }
 
 /**
