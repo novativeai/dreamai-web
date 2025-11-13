@@ -95,9 +95,11 @@ export default function PremiumScreen() {
         customData: {
           firebase_uid: user.uid,
         },
-        customer: {
-          email: user.email || undefined,
-        },
+        ...(user.email && {
+          customer: {
+            email: user.email,
+          },
+        }),
         settings: {
           displayMode: "overlay",
           theme: "light",
