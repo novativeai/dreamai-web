@@ -46,17 +46,24 @@ export default function AgeScreen() {
   }, [router]);
 
   const validateAndCheckAge = useCallback((value: string) => {
-    // Remove non-numeric characters except dots
-    const cleaned = value.replace(/[^\d.]/g, "");
+    // Remove all non-numeric characters (including dots for clean parsing)
+    const numbersOnly = value.replace(/\D/g, "");
 
-    // Auto-format with dots
-    let formatted = cleaned;
-    if (cleaned.length >= 2 && !cleaned.includes(".")) {
-      formatted = cleaned.slice(0, 2) + "." + cleaned.slice(2);
-    }
-    if (cleaned.length >= 5 && cleaned.split(".").length === 2) {
-      const parts = cleaned.split(".");
-      formatted = parts[0] + "." + parts[1].slice(0, 2) + "." + parts[1].slice(2);
+    // Format as DD.MM.YYYY automatically
+    let formatted = "";
+    if (numbersOnly.length > 0) {
+      // Add day (first 2 digits)
+      formatted = numbersOnly.slice(0, 2);
+
+      // Add dot and month after 2 digits
+      if (numbersOnly.length >= 3) {
+        formatted += "." + numbersOnly.slice(2, 4);
+      }
+
+      // Add dot and year after 4 digits
+      if (numbersOnly.length >= 5) {
+        formatted += "." + numbersOnly.slice(4, 8);
+      }
     }
 
     setBirthDate(formatted);
@@ -161,7 +168,7 @@ export default function AgeScreen() {
           value={birthDate}
           onChange={(e) => validateAndCheckAge(e.target.value)}
           placeholder={AGE_INPUT_PLACEHOLDER}
-          className="w-full text-xl mt-48 pb-3 border-b-2 border-gray-300 focus:border-[#FF5069] outline-none transition-colors tracking-wider"
+          className="w-full text-xl mt-48 pb-3 border-b-2 border-gray-300 focus:border-[#FF5069] outline-none transition-colors tracking-wider text-black"
           maxLength={10}
         />
 
