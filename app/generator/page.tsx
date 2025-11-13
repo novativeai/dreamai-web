@@ -529,7 +529,7 @@ export default function GeneratorScreen() {
           {/* Generated Image Display */}
           {generatedImageUrl && (
             <div className="mt-8 space-y-4">
-              <h2 className="text-lg font-semibold">Generated Image</h2>
+              <h2 className="text-lg font-semibold">Result</h2>
 
               {/* Not satisfied link */}
               <div className="text-center">
