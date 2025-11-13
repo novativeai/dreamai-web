@@ -48,11 +48,11 @@ export function isProtectedRoute(path: string): boolean {
  * Check if route is part of authentication flow
  */
 export function isAuthRoute(path: string): boolean {
-  const authRoutes = [
+  const authRoutes: string[] = [
     ROUTES.LOGIN,
     ROUTES.AGE,
     ROUTES.AGE_BLOCKED,
     ROUTES.TERMS_SERVICE,
   ];
-  return authRoutes.includes(path as RouteValue);
+  return authRoutes.includes(path);
 }
