@@ -46,6 +46,7 @@ export function CreditProvider({ children }: { children: ReactNode }) {
         type: string;
         id: string;
         name: string;
+        productName?: string;
         description?: string;
         price: string;
         interval?: string;
@@ -69,6 +70,7 @@ export function CreditProvider({ children }: { children: ReactNode }) {
           fetchedSubs.push({
             id: item.id,
             name: item.name,
+            productName: item.productName,
             description: item.description || "",
             price: item.price,
             interval: intervalStr,

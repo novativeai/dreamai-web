@@ -43,9 +43,17 @@ export default function PremiumScreen() {
     if (!subscriptions || subscriptions.length === 0) return [];
 
     if (activeSegment === "Premium") {
-      return subscriptions.filter((s) => s.name.includes("Premium") && !s.name.includes("Premium +"));
+      // Filter by productName (or name as fallback) to group subscription types
+      return subscriptions.filter((s) => {
+        const filterName = s.productName || s.name;
+        return filterName.includes("Premium") && !filterName.includes("Premium +");
+      });
     }
-    return subscriptions.filter((s) => s.name.includes("Premium +"));
+    // Premium+ subscriptions
+    return subscriptions.filter((s) => {
+      const filterName = s.productName || s.name;
+      return filterName.includes("Premium +");
+    });
   }, [activeSegment, subscriptions]);
 
   useEffect(() => {

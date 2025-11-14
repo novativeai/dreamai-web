@@ -82,6 +82,7 @@ export interface GenerateImageResponse {
 export interface PaddleSubscription {
   id: string;
   name: string;
+  productName?: string;  // The Stripe product name for filtering
   description: string;
   price: string;
   interval?: string;
