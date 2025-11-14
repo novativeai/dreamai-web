@@ -92,22 +92,16 @@ export default function PremiumScreen() {
       // Create checkout with backend
       const checkoutData = await createCheckout(selectedPlanId, user.uid);
 
-      // Open Paddle checkout
+      // Validate response
+      if (!checkoutData.transaction_id) {
+        toast.error("Failed to create checkout. Please try again.");
+        setIsPurchasing(false);
+        return;
+      }
+
+      // Open Paddle checkout with the pre-created transaction
       paddle.Checkout.open({
-        items: [
-          {
-            priceId: checkoutData.priceId,
-            quantity: 1,
-          },
-        ],
-        customData: {
-          firebase_uid: user.uid,
-        },
-        ...(user.email && {
-          customer: {
-            email: user.email,
-          },
-        }),
+        transactionId: checkoutData.transaction_id,
         settings: {
           displayMode: "overlay",
           theme: "light",
