@@ -44,16 +44,20 @@ export default function PremiumScreen() {
 
     if (activeSegment === "Premium") {
       // Filter by productName (or name as fallback) to group subscription types
-      return subscriptions.filter((s) => {
+      const filtered = subscriptions.filter((s) => {
         const filterName = s.productName || s.name;
         return filterName.includes("Premium") && !filterName.includes("Premium +");
       });
+      console.log("[Premium Screen] Premium plans:", filtered.map(p => ({ name: p.name, isRecommended: p.isRecommended })));
+      return filtered;
     }
     // Premium+ subscriptions
-    return subscriptions.filter((s) => {
+    const filtered = subscriptions.filter((s) => {
       const filterName = s.productName || s.name;
       return filterName.includes("Premium +");
     });
+    console.log("[Premium Screen] Premium+ plans:", filtered.map(p => ({ name: p.name, isRecommended: p.isRecommended })));
+    return filtered;
   }, [activeSegment, subscriptions]);
 
   useEffect(() => {

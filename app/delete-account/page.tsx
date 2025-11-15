@@ -508,11 +508,11 @@ export default function DeleteAccountScreen() {
       </div>
       <div className="fixed bottom-0 left-0 right-0 px-4 pt-3 pb-5 border-t border-gray-100 bg-white">
         <button
-          onClick={() => router.push(ROUTES.TERMS_SERVICE)}
+          onClick={() => router.push(ROUTES.DATA_PROTECTION_SETTINGS)}
           className="w-full text-white font-bold text-base py-4 rounded-full mb-4 transition-colors"
           style={{ backgroundColor: BRAND_COLOR }}
         >
-          Read Terms of Service
+          Edit Data Protection settings
         </button>
         <button
           onClick={() => setView("finalConfirmation")}
