@@ -287,9 +287,12 @@ export default function GeneratorScreen() {
 
           <div className="flex items-center gap-3">
             {!isPremium && (
-              <div className="bg-gray-100 px-4 py-2 rounded-full flex items-center gap-2">
+              <button
+                onClick={() => router.push(ROUTES.BUY_CREDITS)}
+                className="bg-gray-100 px-4 py-2 rounded-full flex items-center gap-2 hover:bg-gray-200 transition-colors cursor-pointer"
+              >
                 <span className="text-sm font-semibold">{credits}</span>
-              </div>
+              </button>
             )}
 
             <motion.button

@@ -70,9 +70,17 @@ export default function SettingsScreen() {
       await signOut(auth);
       toast.success("Signed out successfully");
       router.replace(ROUTES.LOGIN);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sign out error:", error);
-      toast.error("Failed to sign out");
+
+      // Check if error requires recent login
+      if (error?.code === "auth/requires-recent-login") {
+        toast.error("Please sign in again to continue");
+        router.replace(ROUTES.LOGIN);
+        return;
+      }
+
+      toast.error("Failed to sign out. Please try again.");
     }
   };
 
@@ -139,6 +147,12 @@ export default function SettingsScreen() {
       isDestructive: true,
       showChevron: false,
     },
+    {
+      label: "Sign out",
+      action: handleSignOut,
+      isDestructive: true,
+      showChevron: false,
+    },
   ];
 
   return (
@@ -183,7 +197,7 @@ export default function SettingsScreen() {
           const showThickSeparatorAfter =
             item.isHighlight ||
             item.label === "Contact" ||
-            item.label === "Data protection";
+            item.label === "Data Protection Settings";
 
           return (
             <div key={item.label}>
