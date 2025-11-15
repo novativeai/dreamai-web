@@ -199,7 +199,7 @@ export default function LoginScreen() {
                 disabled={isLoadingGoogle}
                 className="relative flex items-center justify-center w-full h-[56px] bg-white text-gray-800 border border-gray-300 rounded-full px-6 font-medium mb-3 hover:bg-gray-50 transition-colors duration-200 active:scale-95 disabled:opacity-60"
               >
-                <div className="absolute left-28 flex items-center">
+                <div className="absolute left-6 flex items-center">
                   <Image src={GOOGLE_ICON} alt="Google" width={20} height={20} />
                 </div>
                 <span>Continue with Google</span>
@@ -209,7 +209,7 @@ export default function LoginScreen() {
                 onClick={() => setIsModalVisible(true)}
                 className="relative flex items-center justify-center w-full h-[56px] bg-brand text-white rounded-full px-6 font-semibold hover:bg-brand-dark transition-colors duration-200 active:scale-95"
               >
-                <div className="absolute left-28 flex items-center">
+                <div className="absolute left-6 flex items-center">
                   <Image src={MAIL_ICON} alt="Email" width={20} height={20} />
                 </div>
                 <span>Sign in with Email</span>

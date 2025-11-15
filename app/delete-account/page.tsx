@@ -347,7 +347,7 @@ export default function DeleteAccountScreen() {
       </div>
       <div className="fixed bottom-0 left-0 right-0 px-4 pt-3 pb-5 border-t border-gray-100 bg-white">
         <button
-          onClick={() => router.push(ROUTES.DOCS + "/dataProtectionSetting")}
+          onClick={() => router.push(ROUTES.DATA_PROTECTION_SETTINGS)}
           className="w-full bg-black text-white font-bold text-base py-4 rounded-full mb-4 hover:bg-gray-800 transition-colors"
         >
           Customize data protection settings

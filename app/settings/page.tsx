@@ -129,6 +129,11 @@ export default function SettingsScreen() {
       showChevron: true,
     },
     {
+      label: "Data Protection Settings",
+      action: () => router.push(ROUTES.DATA_PROTECTION_SETTINGS),
+      showChevron: true,
+    },
+    {
       label: "Delete or pause account",
       action: () => router.push(ROUTES.DELETE_ACCOUNT),
       isDestructive: true,

@@ -215,7 +215,7 @@ export default function PremiumScreen() {
                         <p className="text-xs text-gray-500">{plan.description}</p>
                       </div>
                       {plan.isRecommended && (
-                        <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-xs font-semibold ${
+                        <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-xs font-semibold rounded-b-2xl ${
                           selectedPlanId === plan.id ? "bg-[#FF5069] text-white" : "bg-gray-200 text-gray-600"
                         }`}>
                           Recommended

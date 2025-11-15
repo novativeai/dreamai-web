@@ -18,6 +18,7 @@ export const ROUTES = {
   BUY_CREDITS: "/buy-credits",
   SETTINGS: "/settings",
   DELETE_ACCOUNT: "/delete-account",
+  DATA_PROTECTION_SETTINGS: "/data-protection-settings",
 
   // Additional screens
   GENERATOR_TIPS: "/generator-tips",
@@ -39,6 +40,7 @@ export function isProtectedRoute(path: string): boolean {
     ROUTES.PREMIUM,
     ROUTES.SETTINGS,
     ROUTES.DELETE_ACCOUNT,
+    ROUTES.DATA_PROTECTION_SETTINGS,
     ROUTES.GENERATOR_TIPS,
   ];
   return protectedRoutes.includes(path);

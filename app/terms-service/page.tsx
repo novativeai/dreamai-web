@@ -64,6 +64,31 @@ export default function TermsServiceScreen() {
     checkTermsStatus();
   }, [router]);
 
+  // Prevent browser back button navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      window.history.pushState(null, "", window.location.pathname);
+      toast.error("Please accept the terms to continue");
+    };
+
+    // Push a new state to prevent back navigation
+    window.history.pushState(null, "", window.location.pathname);
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   const canProceed = termsAccepted && ageConsentAccepted && !isSaving;
 
   const handleNavigateNext = async () => {
