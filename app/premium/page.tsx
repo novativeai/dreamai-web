@@ -27,7 +27,7 @@ const getIconComponent = (iconName: string) => {
 
 export default function PremiumScreen() {
   const router = useRouter();
-  const { subscriptions, isPremium, premiumStatus, isLoading: contextLoading, refreshCredits } = useCredits();
+  const { subscriptions, isPremium, premiumStatus, subscriptionId, isLoading: contextLoading, refreshCredits } = useCredits();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [activeSegment, setActiveSegment] = useState<"Premium" | "Premium+">("Premium");
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -189,50 +189,80 @@ export default function PremiumScreen() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pb-32">
-        {isPremium ? (
-          <div className="max-w-2xl mx-auto px-6 py-12">
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center">
-              <div className="inline-flex items-center gap-2 bg-[#FF5069] text-white px-6 py-3 rounded-full mb-4">
-                <Image src={PREMIUM_ICON} alt="Premium" width={20} height={20} />
-                <span className="font-bold">You're Premium!</span>
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          {/* Premium Status Banner - Show when subscribed */}
+          {isPremium && (
+            <div className="bg-gradient-to-r from-[#FF5069] to-[#FF3050] rounded-2xl p-6 mb-8 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Image src={PREMIUM_ICON} alt="Premium" width={24} height={24} />
+                  <div>
+                    <p className="font-bold text-lg">You're Premium!</p>
+                    <p className="text-sm opacity-90">
+                      Status: <span className="font-medium capitalize">{premiumStatus || "Active"}</span>
+                    </p>
+                  </div>
+                </div>
               </div>
-              <p className="text-gray-600">
-                Status: <span className="text-black font-medium capitalize">{premiumStatus || "Active"}</span>
-              </p>
             </div>
-          </div>
-        ) : (
-          <div className="max-w-4xl mx-auto px-6 py-8">
-            {contextLoading && (!subscriptions || subscriptions.length === 0) ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FF5069] mb-4"></div>
-                <p className="text-gray-600">Loading plans...</p>
-              </div>
-            ) : (
-              <>
-                {/* Plan Cards */}
-                <div className="flex gap-4 overflow-x-auto pb-4 mb-8">
-                  {currentPlans.map((plan) => (
+          )}
+
+          {contextLoading && (!subscriptions || subscriptions.length === 0) ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FF5069] mb-4"></div>
+              <p className="text-gray-600">Loading plans...</p>
+            </div>
+          ) : (
+            <>
+              {/* Plan Cards */}
+              <div className="flex gap-4 overflow-x-auto pb-4 mb-8">
+                {currentPlans.map((plan) => {
+                  const isActivePlan = isPremium && subscriptionId === plan.id;
+                  return (
                     <button
                       key={plan.id}
-                      onClick={() => setSelectedPlanId(plan.id)}
+                      onClick={() => !isActivePlan && setSelectedPlanId(plan.id)}
+                      disabled={isActivePlan}
                       className={`flex-shrink-0 w-40 min-h-[140px] p-4 border-2 rounded-2xl transition-all relative ${
-                        selectedPlanId === plan.id
+                        isActivePlan
+                          ? "border-[#10b981] bg-gradient-to-br from-emerald-50 to-green-50"
+                          : selectedPlanId === plan.id
                           ? "border-[#FF5069] bg-white shadow-lg"
-                          : "border-gray-200 bg-gray-50"
-                      }`}
+                          : "border-gray-200 bg-gray-50 hover:border-gray-300"
+                      } ${isActivePlan ? "cursor-default" : "cursor-pointer"}`}
                     >
                       <div className="text-center">
-                        <p className={`text-sm font-semibold mb-2 ${selectedPlanId === plan.id ? "text-[#FF5069]" : "text-gray-800"}`}>
+                        <p className={`text-sm font-semibold mb-2 ${
+                          isActivePlan
+                            ? "text-emerald-700"
+                            : selectedPlanId === plan.id
+                            ? "text-[#FF5069]"
+                            : "text-gray-800"
+                        }`}>
                           {plan.name}
                         </p>
-                        <p className={`text-xs mb-1 ${selectedPlanId === plan.id ? "text-[#FF5069]" : "text-gray-600"}`}>
+                        <p className={`text-xs mb-1 ${
+                          isActivePlan
+                            ? "text-emerald-600"
+                            : selectedPlanId === plan.id
+                            ? "text-[#FF5069]"
+                            : "text-gray-600"
+                        }`}>
                           {plan.price}
                           {plan.interval ? `/${plan.interval}` : '/month'}
                         </p>
                         <p className="text-xs text-gray-500">{plan.description}</p>
                       </div>
-                      {plan.isRecommended && (
+
+                      {/* Active Badge */}
+                      {isActivePlan && (
+                        <div className="absolute bottom-0 left-0 right-0 py-1.5 text-center text-xs font-bold rounded-b-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm">
+                          Active
+                        </div>
+                      )}
+
+                      {/* Recommended Badge - Only show if not active */}
+                      {!isActivePlan && plan.isRecommended && (
                         <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-xs font-semibold rounded-b-2xl ${
                           selectedPlanId === plan.id ? "bg-[#FF5069] text-white" : "bg-gray-200 text-gray-600"
                         }`}>
@@ -240,43 +270,43 @@ export default function PremiumScreen() {
                         </div>
                       )}
                     </button>
-                  ))}
-                </div>
-
-                {currentPlans.length === 0 && (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500">No plans available at the moment. Please try again later.</p>
-                  </div>
-                )}
-
-                {/* Features */}
-                {PREMIUM_FEATURES.map((feature) => {
-                  const IconComponent = getIconComponent(feature.iconName);
-                  return (
-                    <div key={feature.id} className="flex items-center gap-4 mb-6">
-                      <div className="flex-shrink-0 w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center">
-                        <IconComponent className="h-6 w-6 text-gray-800" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-black mb-1">{feature.title}</h4>
-                        <p className="text-sm text-gray-600">{feature.description}</p>
-                      </div>
-                    </div>
                   );
                 })}
+              </div>
 
-                <p className="text-xs text-gray-500 text-center mt-8 px-4">{PREMIUM_DISCLAIMER}</p>
-              </>
-            )}
-          </div>
-        )}
+              {currentPlans.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No plans available at the moment. Please try again later.</p>
+                </div>
+              )}
+
+              {/* Features */}
+              {PREMIUM_FEATURES.map((feature) => {
+                const IconComponent = getIconComponent(feature.iconName);
+                return (
+                  <div key={feature.id} className="flex items-center gap-4 mb-6">
+                    <div className="flex-shrink-0 w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center">
+                      <IconComponent className="h-6 w-6 text-gray-800" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-black mb-1">{feature.title}</h4>
+                      <p className="text-sm text-gray-600">{feature.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <p className="text-xs text-gray-500 text-center mt-8 px-4">{PREMIUM_DISCLAIMER}</p>
+            </>
+          )}
+        </div>
       </main>
 
-      {/* Bottom Purchase Button */}
-      {!isPremium && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4">
-          <div className="max-w-4xl mx-auto">
-            {/* Credits Link */}
+      {/* Bottom Purchase/Change Plan Button */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Credits Link - Only show for non-premium users */}
+          {!isPremium && (
             <div className="text-center mb-3">
               <button
                 onClick={() => router.push(ROUTES.BUY_CREDITS)}
@@ -285,7 +315,24 @@ export default function PremiumScreen() {
                 Buy some credits?
               </button>
             </div>
+          )}
 
+          {/* Show different button based on premium status */}
+          {isPremium ? (
+            <button
+              onClick={handlePurchase}
+              disabled={!selectedPlan || contextLoading || isPurchasing || (subscriptionId === selectedPlanId)}
+              className="w-full bg-[#FF5069] hover:bg-[#FF3050] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-full transition-colors flex items-center justify-center gap-2"
+            >
+              {isPurchasing ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+              ) : subscriptionId === selectedPlanId ? (
+                <span>Current Plan</span>
+              ) : (
+                <span>{selectedPlan ? `Change to ${selectedPlan.name}` : "Select a Plan"}</span>
+              )}
+            </button>
+          ) : (
             <button
               onClick={handlePurchase}
               disabled={!selectedPlan || contextLoading || isPurchasing}
@@ -297,9 +344,9 @@ export default function PremiumScreen() {
                 <span>{selectedPlan ? `Continue with ${selectedPlan.name}` : "Select a Plan"}</span>
               )}
             </button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
