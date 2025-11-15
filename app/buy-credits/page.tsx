@@ -4,14 +4,14 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { useCredits } from "@/contexts/CreditContext";
-import { initPaddle } from "@/lib/paddle";
+import { initPaddle, setCheckoutContext } from "@/lib/paddle";
 import { createCheckout } from "@/lib/api";
 import { ROUTES } from "@/utils/routes";
 import toast from "react-hot-toast";
 
 export default function BuyCreditsScreen() {
   const router = useRouter();
-  const { creditPackages, isLoading: contextLoading } = useCredits();
+  const { creditPackages, isLoading: contextLoading, refreshCredits } = useCredits();
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
 
@@ -68,6 +68,20 @@ export default function BuyCreditsScreen() {
         setIsPurchasing(false);
         return;
       }
+
+      // Set checkout context for global event handler
+      setCheckoutContext({
+        type: 'credit',
+        onSuccess: () => {
+          // Refresh credits from Firestore (backend webhook has already updated them)
+          refreshCredits();
+
+          // Navigate to generator screen after brief delay
+          setTimeout(() => {
+            router.push(ROUTES.GENERATOR);
+          }, 1500);
+        },
+      });
 
       // Open Paddle checkout with the pre-created transaction
       paddle.Checkout.open({

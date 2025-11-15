@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { auth } from "@/lib/firebase";
 import { useCredits } from "@/contexts/CreditContext";
-import { initPaddle } from "@/lib/paddle";
+import { initPaddle, setCheckoutContext } from "@/lib/paddle";
 import { createCheckout } from "@/lib/api";
 import { ROUTES } from "@/utils/routes";
 import { PREMIUM_FEATURES, PREMIUM_DISCLAIMER, PREMIUM_ICON } from "@/constants";
@@ -27,7 +27,7 @@ const getIconComponent = (iconName: string) => {
 
 export default function PremiumScreen() {
   const router = useRouter();
-  const { subscriptions, isPremium, premiumStatus, isLoading: contextLoading } = useCredits();
+  const { subscriptions, isPremium, premiumStatus, isLoading: contextLoading, refreshCredits } = useCredits();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [activeSegment, setActiveSegment] = useState<"Premium" | "Premium+">("Premium");
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -102,6 +102,20 @@ export default function PremiumScreen() {
         setIsPurchasing(false);
         return;
       }
+
+      // Set checkout context for global event handler
+      setCheckoutContext({
+        type: 'subscription',
+        onSuccess: () => {
+          // Refresh user data from Firestore (backend webhook has already updated isPremium)
+          refreshCredits();
+
+          // Navigate to generator screen after brief delay
+          setTimeout(() => {
+            router.push(ROUTES.GENERATOR);
+          }, 1500);
+        },
+      });
 
       // Open Paddle checkout with the pre-created transaction
       paddle.Checkout.open({
