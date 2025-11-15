@@ -5,7 +5,16 @@ import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { ROUTES } from "@/utils/routes";
 import { APP_NAME, SUPPORT_EMAIL } from "@/constants";
+import {
+  getAnalyticsConsent,
+  setAnalyticsConsent,
+  getCrashReportingConsent,
+  setCrashReportingConsent,
+  trackSettingsChange
+} from "@/services/analyticsService";
 import toast from "react-hot-toast";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface PrivacySetting {
   id: string;
@@ -52,16 +61,39 @@ export default function DataProtectionSettingsScreen() {
   ]);
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      router.replace(ROUTES.LOGIN);
-      return;
-    }
+    const loadUserPreferences = async () => {
+      const user = auth.currentUser;
+      if (!user) {
+        router.replace(ROUTES.LOGIN);
+        return;
+      }
 
-    // Simulate loading user preferences
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
+      try {
+        // Load analytics and crash reporting preferences from Firestore
+        const analyticsEnabled = await getAnalyticsConsent(user.uid);
+        const crashReportingEnabled = await getCrashReportingConsent(user.uid);
+
+        setSettings((prev) =>
+          prev.map((setting) => {
+            if (setting.id === "usage_analytics") {
+              return { ...setting, enabled: analyticsEnabled };
+            }
+            if (setting.id === "crash_reporting") {
+              return { ...setting, enabled: crashReportingEnabled };
+            }
+            return setting;
+          })
+        );
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error loading user preferences:", error);
+        toast.error("Failed to load your privacy settings");
+        setIsLoading(false);
+      }
+    };
+
+    loadUserPreferences();
   }, [router]);
 
   const handleToggleSetting = (id: string) => {
@@ -75,10 +107,27 @@ export default function DataProtectionSettingsScreen() {
   };
 
   const handleSaveSettings = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("Please log in to save settings");
+      return;
+    }
+
     setIsSaving(true);
     try {
-      // Simulate saving to backend
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Save analytics and crash reporting preferences
+      const analyticsSetting = settings.find((s) => s.id === "usage_analytics");
+      const crashReportingSetting = settings.find((s) => s.id === "crash_reporting");
+
+      if (analyticsSetting) {
+        await setAnalyticsConsent(user.uid, analyticsSetting.enabled);
+        await trackSettingsChange(user.uid, "usage_analytics", analyticsSetting.enabled);
+      }
+
+      if (crashReportingSetting) {
+        await setCrashReportingConsent(user.uid, crashReportingSetting.enabled);
+        await trackSettingsChange(user.uid, "crash_reporting", crashReportingSetting.enabled);
+      }
 
       toast.success("Privacy settings saved successfully");
     } catch (error) {

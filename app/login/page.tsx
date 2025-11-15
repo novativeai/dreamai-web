@@ -80,7 +80,12 @@ export default function LoginScreen() {
     const provider = new GoogleAuthProvider();
 
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Import analytics tracking dynamically
+      const { trackLogin } = await import("@/services/analyticsService");
+      await trackLogin("google", user.uid);
     } catch (error: unknown) {
       const errorMessage = handleFirebaseError(error);
       toast.error(errorMessage);

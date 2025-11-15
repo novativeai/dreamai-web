@@ -119,6 +119,10 @@ export default function GeneratorScreen() {
       const imageUrl = URL.createObjectURL(imageBlob);
       setGeneratedImageUrl(imageUrl);
 
+      // Track image generation
+      const { trackImageGeneration } = await import("@/services/analyticsService");
+      await trackImageGeneration(user.uid, styleInfo.key, isPremium);
+
       toast.success("Image generated successfully!");
     } catch (error) {
       console.error("Generation error:", error);
@@ -205,7 +209,7 @@ export default function GeneratorScreen() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!generatedImageUrl) return;
 
     const link = document.createElement("a");
@@ -215,6 +219,13 @@ export default function GeneratorScreen() {
     link.click();
     document.body.removeChild(link);
     toast.success("Image downloaded!");
+
+    // Track download
+    const user = auth.currentUser;
+    if (user) {
+      const { trackImageDownload } = await import("@/services/analyticsService");
+      await trackImageDownload(user.uid);
+    }
   };
 
   const handleShare = async () => {
@@ -233,6 +244,13 @@ export default function GeneratorScreen() {
           text: "Check out this image I created with DreamAI!",
         });
         toast.success("Image shared!");
+
+        // Track share
+        const user = auth.currentUser;
+        if (user) {
+          const { trackImageShare } = await import("@/services/analyticsService");
+          await trackImageShare(user.uid, "native_share");
+        }
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.write([
@@ -241,6 +259,13 @@ export default function GeneratorScreen() {
           }),
         ]);
         toast.success("Image copied to clipboard!");
+
+        // Track share
+        const user = auth.currentUser;
+        if (user) {
+          const { trackImageShare } = await import("@/services/analyticsService");
+          await trackImageShare(user.uid, "clipboard");
+        }
       }
     } catch (error) {
       console.error("Share error:", error);
