@@ -27,7 +27,7 @@ const getIconComponent = (iconName: string) => {
 
 export default function PremiumScreen() {
   const router = useRouter();
-  const { subscriptions, isPremium, premiumStatus, subscriptionId, isLoading: contextLoading, refreshCredits } = useCredits();
+  const { subscriptions, isPremium, premiumStatus, subscriptionPriceId, isLoading: contextLoading, refreshCredits } = useCredits();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [activeSegment, setActiveSegment] = useState<"Premium" | "Premium+">("Premium");
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -217,7 +217,7 @@ export default function PremiumScreen() {
               {/* Plan Cards */}
               <div className="flex gap-4 overflow-x-auto pb-4 mb-8">
                 {currentPlans.map((plan) => {
-                  const isActivePlan = isPremium && subscriptionId === plan.id;
+                  const isActivePlan = isPremium && subscriptionPriceId === plan.id;
                   return (
                     <button
                       key={plan.id}
@@ -321,12 +321,12 @@ export default function PremiumScreen() {
           {isPremium ? (
             <button
               onClick={handlePurchase}
-              disabled={!selectedPlan || contextLoading || isPurchasing || (subscriptionId === selectedPlanId)}
+              disabled={!selectedPlan || contextLoading || isPurchasing || (subscriptionPriceId === selectedPlanId)}
               className="w-full bg-[#FF5069] hover:bg-[#FF3050] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-full transition-colors flex items-center justify-center gap-2"
             >
               {isPurchasing ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-              ) : subscriptionId === selectedPlanId ? (
+              ) : subscriptionPriceId === selectedPlanId ? (
                 <span>Current Plan</span>
               ) : (
                 <span>{selectedPlan ? `Change to ${selectedPlan.name}` : "Select a Plan"}</span>

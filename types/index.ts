@@ -103,6 +103,7 @@ export interface CreditContextValue {
   isPremium: boolean;
   premiumStatus: "active" | "paused" | null;
   subscriptionId: string | null;
+  subscriptionPriceId: string | null;
   subscriptions: PaddleSubscription[];
   creditPackages: PaddleCreditPackage[];
   isLoading: boolean;

@@ -16,6 +16,7 @@ export function CreditProvider({ children }: { children: ReactNode }) {
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [premiumStatus, setPremiumStatus] = useState<"active" | "paused" | null>(null);
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
+  const [subscriptionPriceId, setSubscriptionPriceId] = useState<string | null>(null);
   const [subscriptions, setSubscriptions] = useState<PaddleSubscription[]>([]);
   const [creditPackages, setCreditPackages] = useState<PaddleCreditPackage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -110,6 +111,7 @@ export function CreditProvider({ children }: { children: ReactNode }) {
         setIsPremium(false);
         setPremiumStatus(null);
         setSubscriptionId(null);
+        setSubscriptionPriceId(null);
         setIsLoading(false);
         // Still fetch products for non-authenticated users
         fetchProducts();
@@ -136,12 +138,14 @@ export function CreditProvider({ children }: { children: ReactNode }) {
           setIsPremium(data.isPremium || false);
           setPremiumStatus(data.premium_status || null);
           setSubscriptionId(data.subscription_id || null);
+          setSubscriptionPriceId(data.subscription_price_id || null);
         } else {
           // Document doesn't exist yet
           setCredits(0);
           setIsPremium(false);
           setPremiumStatus(null);
           setSubscriptionId(null);
+          setSubscriptionPriceId(null);
         }
         setIsLoading(false);
 
@@ -169,6 +173,7 @@ export function CreditProvider({ children }: { children: ReactNode }) {
           setIsPremium(data.isPremium || false);
           setPremiumStatus(data.premium_status || null);
           setSubscriptionId(data.subscription_id || null);
+          setSubscriptionPriceId(data.subscription_price_id || null);
         }
       });
     } catch (error) {
@@ -203,6 +208,7 @@ export function CreditProvider({ children }: { children: ReactNode }) {
     isPremium,
     premiumStatus,
     subscriptionId,
+    subscriptionPriceId,
     subscriptions,
     creditPackages,
     isLoading,
