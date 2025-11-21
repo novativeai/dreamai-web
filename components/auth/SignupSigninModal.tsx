@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  sendEmailVerification,
-  User,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
 } from "firebase/auth";
 import { handleFirebaseError } from "@/utils/errors";
 import { Modal } from "@/components/ui/Modal";
 import toast from "react-hot-toast";
+
+// Key for storing email in localStorage for email link sign-in
+const EMAIL_FOR_SIGN_IN_KEY = "emailForSignIn";
 
 interface SignupSigninModalProps {
   isOpen: boolean;
@@ -19,34 +21,55 @@ interface SignupSigninModalProps {
 }
 
 export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninModalProps) {
-  const [view, setView] = useState<"auth" | "verify">("auth");
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [view, setView] = useState<"email" | "sent">("email");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [userForVerification, setUserForVerification] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setView("auth");
-      setAuthMode("signin");
+      setView("email");
       setEmail("");
-      setPassword("");
-      setConfirmPassword("");
       setError(null);
       setIsLoading(false);
-      setUserForVerification(null);
     }
   }, [isOpen]);
 
-  const toggleAuthMode = () => {
-    setAuthMode((prev) => (prev === "signin" ? "signup" : "signin"));
-    setError(null);
-    setPassword("");
-    setConfirmPassword("");
-  };
+  // Check if user arrived via email link on mount
+  useEffect(() => {
+    const handleEmailLink = async () => {
+      if (typeof window === "undefined") return;
+
+      const currentUrl = window.location.href;
+
+      if (isSignInWithEmailLink(auth, currentUrl)) {
+        // Get the email from localStorage
+        let emailFromStorage = window.localStorage.getItem(EMAIL_FOR_SIGN_IN_KEY);
+
+        if (!emailFromStorage) {
+          // User opened on different device, prompt for email
+          emailFromStorage = window.prompt("Please provide your email for confirmation");
+        }
+
+        if (emailFromStorage) {
+          try {
+            await signInWithEmailLink(auth, emailFromStorage, currentUrl);
+            // Clear the stored email
+            window.localStorage.removeItem(EMAIL_FOR_SIGN_IN_KEY);
+            // Clean up the URL
+            window.history.replaceState(null, "", window.location.pathname);
+            toast.success("Successfully signed in!");
+            onSuccess();
+          } catch (err) {
+            const errorMessage = handleFirebaseError(err);
+            toast.error(errorMessage);
+          }
+        }
+      }
+    };
+
+    handleEmailLink();
+  }, [onSuccess]);
 
   const handleClose = () => {
     if (!isLoading) {
@@ -54,175 +77,148 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
     }
   };
 
-  const handleAuthentication = async () => {
-    if (!email || !password || (authMode === "signup" && !confirmPassword)) {
-      setError("Please fill in all required fields.");
+  const handleSendEmailLink = async () => {
+    if (!email) {
+      setError("Please enter your email address.");
       return;
     }
-    if (authMode === "signup" && password !== confirmPassword) {
-      setError("Passwords do not match.");
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
       return;
     }
 
     setIsLoading(true);
     setError(null);
 
-    if (authMode === "signup") {
-      await handleSignUp();
-    } else {
-      await handleSignIn();
-    }
-  };
-
-  const handleSignUp = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await sendEmailVerification(userCredential.user);
-      setUserForVerification(userCredential.user);
-      setIsLoading(false);
-      setView("verify");
-    } catch (err) {
-      const errorMessage = handleFirebaseError(err);
-      setError(errorMessage);
-      setIsLoading(false);
-    }
-  };
+      // Get the current origin for the redirect URL
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-  const handleSignIn = async () => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const actionCodeSettings = {
+        // URL to redirect back to after email link click
+        url: `${origin}/auth/email-link`,
+        handleCodeInApp: true,
+      };
 
-      if (!userCredential.user.emailVerified) {
-        setError("Your email is not verified.");
-        const resend = confirm("Please check your inbox for the verification link. Would you like to resend it?");
-        if (resend) {
-          await sendEmailVerification(userCredential.user);
-          toast.success("Verification email sent!");
-        }
-        setIsLoading(false);
-      } else {
-        onSuccess();
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+
+      // Save the email locally to complete sign-in on return
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(EMAIL_FOR_SIGN_IN_KEY, email);
       }
+
+      setView("sent");
+      toast.success("Sign-in link sent! Check your email.");
     } catch (err) {
       const errorMessage = handleFirebaseError(err);
       setError(errorMessage);
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleVerificationCheck = async () => {
+  const handleResendLink = async () => {
     setIsLoading(true);
     setError(null);
 
-    if (!userForVerification) {
-      setError("An unexpected error occurred. Please try signing up again.");
-      setIsLoading(false);
-      return;
-    }
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-    await userForVerification.reload();
+      const actionCodeSettings = {
+        url: `${origin}/auth/email-link`,
+        handleCodeInApp: true,
+      };
 
-    if (userForVerification.emailVerified) {
-      toast.success("Your account has been verified. You are now logged in.");
-      onSuccess();
-    } else {
-      setError("Your email is still not verified. Please click the link in your email.");
-      const resend = confirm("Please check your inbox (and spam folder) for the verification link. Resend it?");
-      if (resend) {
-        await sendEmailVerification(userForVerification);
-        toast.success("Verification email sent!");
-      }
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      toast.success("Sign-in link resent! Check your email.");
+    } catch (err) {
+      const errorMessage = handleFirebaseError(err);
+      setError(errorMessage);
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const renderAuthForm = () => (
+  const renderEmailForm = () => (
     <div className="w-full">
-      <h2 className="text-2xl font-medium text-gray-800 mb-5 text-center">
-        {authMode === "signin" ? "Sign In" : "Create Account"}
+      <h2 className="text-2xl font-medium text-gray-800 mb-2 text-center">
+        Sign In with Email
       </h2>
+      <p className="text-gray-500 text-sm mb-5 text-center">
+        We'll send you a magic link to sign in instantly
+      </p>
 
       <input
         type="email"
         placeholder="Email Address"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSendEmailLink()}
         disabled={isLoading}
         className="input-field mb-4"
         autoComplete="email"
+        autoFocus
       />
-
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        disabled={isLoading}
-        className="input-field mb-4"
-        autoComplete={authMode === "signin" ? "current-password" : "new-password"}
-      />
-
-      {authMode === "signup" && (
-        <input
-          type="password"
-          placeholder="Confirm Password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          disabled={isLoading}
-          className="input-field mb-4"
-          autoComplete="new-password"
-        />
-      )}
 
       <button
-        onClick={handleAuthentication}
-        disabled={isLoading}
+        onClick={handleSendEmailLink}
+        disabled={isLoading || !email}
         className="button-primary w-full"
       >
-        {isLoading ? "Processing..." : authMode === "signin" ? "Sign In" : "Create Account"}
-      </button>
-
-      <button
-        onClick={toggleAuthMode}
-        disabled={isLoading}
-        className="mt-4 text-gray-600 hover:text-gray-800 transition-colors"
-      >
-        {authMode === "signin" ? "Don't have an account? " : "Already have an account? "}
-        <span className="text-brand font-semibold">
-          {authMode === "signin" ? "Sign Up" : "Sign In"}
-        </span>
+        {isLoading ? "Sending..." : "Send Magic Link"}
       </button>
     </div>
   );
 
-  const renderVerificationForm = () => (
-    <div className="w-full">
-      <h2 className="text-2xl font-medium text-gray-800 mb-5 text-center">Check Your Email</h2>
+  const renderSentConfirmation = () => (
+    <div className="w-full text-center">
+      <div className="mb-4">
+        <svg
+          className="w-16 h-16 mx-auto text-[#FF5069]"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+          />
+        </svg>
+      </div>
 
-      <p className="text-gray-600 mb-4 text-center">
-        We sent a verification link to <span className="font-bold">{email}</span>. Please click the link to
-        activate your account.
+      <h2 className="text-2xl font-medium text-gray-800 mb-3">Check Your Email</h2>
+
+      <p className="text-gray-600 mb-2">
+        We sent a sign-in link to
       </p>
+      <p className="text-gray-800 font-semibold mb-4">{email}</p>
 
-      <p className="text-gray-600 mb-6 text-center">
-        Once verified, click the button below to continue.
+      <p className="text-gray-500 text-sm mb-6">
+        Click the link in the email to sign in instantly. The link will expire in 1 hour.
       </p>
 
       <button
-        onClick={handleVerificationCheck}
+        onClick={handleResendLink}
         disabled={isLoading}
-        className="button-primary w-full mb-4"
+        className="text-[#FF5069] font-semibold hover:underline transition-colors mb-4"
       >
-        {isLoading ? "Checking..." : "I've Verified My Email"}
+        {isLoading ? "Sending..." : "Resend Link"}
       </button>
 
-      <button
-        onClick={() => setView("auth")}
-        disabled={isLoading}
-        className="text-brand font-semibold hover:text-brand-dark transition-colors"
-      >
-        Back to Sign In
-      </button>
+      <div className="mt-2">
+        <button
+          onClick={() => setView("email")}
+          disabled={isLoading}
+          className="text-gray-500 hover:text-gray-700 transition-colors text-sm"
+        >
+          Use a different email
+        </button>
+      </div>
     </div>
   );
 
@@ -235,8 +231,11 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
           </div>
         )}
 
-        {view === "auth" ? renderAuthForm() : renderVerificationForm()}
+        {view === "email" ? renderEmailForm() : renderSentConfirmation()}
       </div>
     </Modal>
   );
 }
+
+// Export the key for use in other files
+export { EMAIL_FOR_SIGN_IN_KEY };
