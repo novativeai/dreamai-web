@@ -242,8 +242,8 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
 
   // Render the main auth form
   const renderAuthForm = () => (
-    <div className="w-full">
-      <h2 className="text-2xl font-medium text-gray-800 mb-5 text-center">
+    <div className="w-full flex flex-col items-center">
+      <h2 className="text-2xl font-medium text-gray-700 mb-5 text-center">
         {authMode === "signin" ? "Sign In" : "Create Account"}
       </h2>
 
@@ -253,7 +253,7 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={isLoading}
-        className="input-field mb-4"
+        className="input-field mb-4 w-full"
         autoComplete="email"
         autoFocus
       />
@@ -264,7 +264,7 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         disabled={isLoading}
-        className="input-field mb-4"
+        className="input-field mb-4 w-full"
         autoComplete={authMode === "signin" ? "current-password" : "new-password"}
       />
 
@@ -275,7 +275,7 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           disabled={isLoading}
-          className="input-field mb-4"
+          className="input-field mb-4 w-full"
           autoComplete="new-password"
         />
       )}
@@ -293,7 +293,7 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
         <button
           onClick={handleMagicLink}
           disabled={isLoading || !email}
-          className="w-full py-3 text-[#FF5069] hover:bg-pink-50 rounded-full transition-colors text-sm font-medium"
+          className="w-full py-3 text-[#FF5069] hover:bg-pink-50 rounded-full transition-colors text-sm font-medium text-center"
         >
           Sign in with Magic Link (no password)
         </button>
@@ -303,7 +303,7 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
         <button
           onClick={toggleAuthMode}
           disabled={isLoading}
-          className="text-gray-600 hover:text-gray-800 transition-colors"
+          className="text-gray-500 hover:text-gray-700 transition-colors"
         >
           {authMode === "signin" ? "Don't have an account? " : "Already have an account? "}
           <span className="text-[#FF5069] font-semibold">
@@ -316,7 +316,7 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
 
   // Render verification pending view
   const renderVerifyView = () => (
-    <div className="w-full text-center">
+    <div className="w-full text-center flex flex-col items-center">
       <div className="mb-4">
         <svg
           className="w-16 h-16 mx-auto text-[#FF5069]"
@@ -333,14 +333,14 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
         </svg>
       </div>
 
-      <h2 className="text-2xl font-medium text-gray-800 mb-3">Verify Your Email</h2>
+      <h2 className="text-2xl font-medium text-gray-700 mb-3">Verify Your Email</h2>
 
-      <p className="text-gray-600 mb-2">
+      <p className="text-gray-500 mb-2">
         We sent a verification link to
       </p>
-      <p className="text-gray-800 font-semibold mb-4">{email}</p>
+      <p className="text-gray-700 font-semibold mb-4">{email}</p>
 
-      <p className="text-gray-500 text-sm mb-6">
+      <p className="text-gray-400 text-sm mb-6">
         Click the link in the email to verify your account. Once verified, you can sign in.
       </p>
 
@@ -356,7 +356,7 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
         <button
           onClick={() => setView("auth")}
           disabled={isLoading}
-          className="text-gray-500 hover:text-gray-700 transition-colors text-sm"
+          className="text-gray-400 hover:text-gray-600 transition-colors text-sm"
         >
           Back to Sign In
         </button>
@@ -366,7 +366,7 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
 
   // Render magic link sent view
   const renderMagicSentView = () => (
-    <div className="w-full text-center">
+    <div className="w-full text-center flex flex-col items-center">
       <div className="mb-4">
         <svg
           className="w-16 h-16 mx-auto text-[#FF5069]"
@@ -383,14 +383,14 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
         </svg>
       </div>
 
-      <h2 className="text-2xl font-medium text-gray-800 mb-3">Check Your Email</h2>
+      <h2 className="text-2xl font-medium text-gray-700 mb-3">Check Your Email</h2>
 
-      <p className="text-gray-600 mb-2">
+      <p className="text-gray-500 mb-2">
         We sent a sign-in link to
       </p>
-      <p className="text-gray-800 font-semibold mb-4">{email}</p>
+      <p className="text-gray-700 font-semibold mb-4">{email}</p>
 
-      <p className="text-gray-500 text-sm mb-6">
+      <p className="text-gray-400 text-sm mb-6">
         Click the link in the email to sign in instantly. The link expires in 1 hour.
       </p>
 
@@ -406,7 +406,7 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
         <button
           onClick={() => setView("auth")}
           disabled={isLoading}
-          className="text-gray-500 hover:text-gray-700 transition-colors text-sm"
+          className="text-gray-400 hover:text-gray-600 transition-colors text-sm"
         >
           Use a different email or sign in with password
         </button>
@@ -416,9 +416,9 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} maxWidth="sm">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm flex flex-col items-center">
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm w-full text-center">
             {error}
           </div>
         )}
