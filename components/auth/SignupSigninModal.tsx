@@ -2,15 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  sendEmailVerification,
-  sendSignInLinkToEmail,
-  ActionCodeSettings,
-} from "firebase/auth";
+import { sendSignInLinkToEmail, ActionCodeSettings } from "firebase/auth";
 import { handleFirebaseError } from "@/utils/errors";
-import { Modal } from "@/components/ui/Modal";
 import toast from "react-hot-toast";
 
 // Key for storing email in localStorage for email link sign-in
@@ -22,29 +15,48 @@ interface SignupSigninModalProps {
   onSuccess: () => void;
 }
 
-type AuthMode = "signin" | "signup";
-type ViewState = "auth" | "verify" | "magic-sent";
+type ViewState = "email-input" | "magic-sent";
 
 export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninModalProps) {
-  const [view, setView] = useState<ViewState>("auth");
-  const [authMode, setAuthMode] = useState<AuthMode>("signin");
+  const [view, setView] = useState<ViewState>("email-input");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setView("auth");
-      setAuthMode("signin");
+      setView("email-input");
       setEmail("");
-      setPassword("");
-      setConfirmPassword("");
       setError(null);
       setIsLoading(false);
     }
+  }, [isOpen]);
+
+  // Close on escape key
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isLoading) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, isLoading, onClose]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
   }, [isOpen]);
 
   const handleClose = () => {
@@ -53,95 +65,8 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
     }
   };
 
-  const toggleAuthMode = () => {
-    setAuthMode((prev) => (prev === "signin" ? "signup" : "signin"));
-    setError(null);
-    setPassword("");
-    setConfirmPassword("");
-  };
-
-  // Get action code settings for email verification
-  const getActionCodeSettings = (): ActionCodeSettings => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    return {
-      url: `${origin}/auth/action`,
-      handleCodeInApp: true,
-    };
-  };
-
-  // Handle email/password sign up
-  const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
-      // Send email verification with action code settings
-      await sendEmailVerification(userCredential.user, getActionCodeSettings());
-
-      toast.success("Account created! Please check your email to verify.");
-      setView("verify");
-    } catch (err) {
-      const errorMessage = handleFirebaseError(err);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle email/password sign in
-  const handleSignIn = async () => {
-    if (!email || !password) {
-      setError("Please enter your email and password.");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
-      if (!userCredential.user.emailVerified) {
-        // Email not verified - offer to resend
-        setError("Please verify your email before signing in.");
-        const resend = confirm("Your email is not verified. Would you like to resend the verification email?");
-        if (resend) {
-          await sendEmailVerification(userCredential.user, getActionCodeSettings());
-          toast.success("Verification email sent! Please check your inbox.");
-        }
-        // Sign out the unverified user
-        await auth.signOut();
-        setIsLoading(false);
-        return;
-      }
-
-      toast.success("Successfully signed in!");
-      onSuccess();
-    } catch (err) {
-      const errorMessage = handleFirebaseError(err);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Handle magic link (passwordless) sign in
-  const handleMagicLink = async () => {
+  const handleSendMagicLink = async () => {
     if (!email) {
       setError("Please enter your email address.");
       return;
@@ -180,44 +105,6 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
     }
   };
 
-  // Resend verification email
-  const handleResendVerification = async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      // Try to sign in again to resend
-      if (!email || !password) {
-        setError("Please sign in again to resend verification.");
-        setView("auth");
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        await sendEmailVerification(userCredential.user, getActionCodeSettings());
-        await auth.signOut();
-        toast.success("Verification email resent!");
-      } catch (err) {
-        const errorMessage = handleFirebaseError(err);
-        setError(errorMessage);
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await sendEmailVerification(user, getActionCodeSettings());
-      toast.success("Verification email resent!");
-    } catch (err) {
-      const errorMessage = handleFirebaseError(err);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Resend magic link
   const handleResendMagicLink = async () => {
     setIsLoading(true);
@@ -240,194 +127,109 @@ export function SignupSigninModal({ isOpen, onClose, onSuccess }: SignupSigninMo
     }
   };
 
-  // Render the main auth form
-  const renderAuthForm = () => (
-    <div className="w-full flex flex-col items-center">
-      <h2 className="text-2xl font-medium text-gray-700 mb-5 text-center">
-        {authMode === "signin" ? "Sign In" : "Create Account"}
-      </h2>
-
-      <input
-        type="email"
-        placeholder="Email Address"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        disabled={isLoading}
-        className="input-field mb-4 w-full"
-        autoComplete="email"
-        autoFocus
-      />
-
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        disabled={isLoading}
-        className="input-field mb-4 w-full"
-        autoComplete={authMode === "signin" ? "current-password" : "new-password"}
-      />
-
-      {authMode === "signup" && (
-        <input
-          type="password"
-          placeholder="Confirm Password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          disabled={isLoading}
-          className="input-field mb-4 w-full"
-          autoComplete="new-password"
-        />
-      )}
-
-      <button
-        onClick={authMode === "signin" ? handleSignIn : handleSignUp}
-        disabled={isLoading}
-        className="button-primary w-full mb-3"
-      >
-        {isLoading ? "Processing..." : authMode === "signin" ? "Sign In" : "Create Account"}
-      </button>
-
-      {/* Magic Link Option */}
-      {authMode === "signin" && (
-        <button
-          onClick={handleMagicLink}
-          disabled={isLoading || !email}
-          className="w-full py-3 text-[#FF5069] hover:bg-pink-50 rounded-full transition-colors text-sm font-medium text-center"
-        >
-          Sign in with Magic Link (no password)
-        </button>
-      )}
-
-      <div className="mt-4 text-center">
-        <button
-          onClick={toggleAuthMode}
-          disabled={isLoading}
-          className="text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          {authMode === "signin" ? "Don't have an account? " : "Already have an account? "}
-          <span className="text-[#FF5069] font-semibold">
-            {authMode === "signin" ? "Sign Up" : "Sign In"}
-          </span>
-        </button>
-      </div>
-    </div>
-  );
-
-  // Render verification pending view
-  const renderVerifyView = () => (
-    <div className="w-full text-center flex flex-col items-center">
-      <div className="mb-4">
-        <svg
-          className="w-16 h-16 mx-auto text-[#FF5069]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-          />
-        </svg>
-      </div>
-
-      <h2 className="text-2xl font-medium text-gray-700 mb-3">Verify Your Email</h2>
-
-      <p className="text-gray-500 mb-2">
-        We sent a verification link to
-      </p>
-      <p className="text-gray-700 font-semibold mb-4">{email}</p>
-
-      <p className="text-gray-400 text-sm mb-6">
-        Click the link in the email to verify your account. Once verified, you can sign in.
-      </p>
-
-      <button
-        onClick={handleResendVerification}
-        disabled={isLoading}
-        className="text-[#FF5069] font-semibold hover:underline transition-colors mb-4"
-      >
-        {isLoading ? "Sending..." : "Resend Verification Email"}
-      </button>
-
-      <div className="mt-4">
-        <button
-          onClick={() => setView("auth")}
-          disabled={isLoading}
-          className="text-gray-400 hover:text-gray-600 transition-colors text-sm"
-        >
-          Back to Sign In
-        </button>
-      </div>
-    </div>
-  );
-
-  // Render magic link sent view
-  const renderMagicSentView = () => (
-    <div className="w-full text-center flex flex-col items-center">
-      <div className="mb-4">
-        <svg
-          className="w-16 h-16 mx-auto text-[#FF5069]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-          />
-        </svg>
-      </div>
-
-      <h2 className="text-2xl font-medium text-gray-700 mb-3">Check Your Email</h2>
-
-      <p className="text-gray-500 mb-2">
-        We sent a sign-in link to
-      </p>
-      <p className="text-gray-700 font-semibold mb-4">{email}</p>
-
-      <p className="text-gray-400 text-sm mb-6">
-        Click the link in the email to sign in instantly. The link expires in 1 hour.
-      </p>
-
-      <button
-        onClick={handleResendMagicLink}
-        disabled={isLoading}
-        className="text-[#FF5069] font-semibold hover:underline transition-colors mb-4"
-      >
-        {isLoading ? "Sending..." : "Resend Magic Link"}
-      </button>
-
-      <div className="mt-2">
-        <button
-          onClick={() => setView("auth")}
-          disabled={isLoading}
-          className="text-gray-400 hover:text-gray-600 transition-colors text-sm"
-        >
-          Use a different email or sign in with password
-        </button>
-      </div>
-    </div>
-  );
+  if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="sm">
-      <div className="w-full max-w-sm flex flex-col items-center">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={handleClose}
+    >
+      <div
+        className="w-full max-w-sm bg-white rounded-2xl p-8 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm w-full text-center">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm text-center">
             {error}
           </div>
         )}
 
-        {view === "auth" && renderAuthForm()}
-        {view === "verify" && renderVerifyView()}
-        {view === "magic-sent" && renderMagicSentView()}
+        {view === "email-input" && (
+          <div className="flex flex-col items-center text-center">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+              Sign In
+            </h2>
+            <p className="text-gray-500 text-sm mb-6">
+              Enter your email and we'll send you a magic link to sign in instantly.
+            </p>
+
+            <input
+              type="email"
+              placeholder="Email Address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-[#FF5069] focus:border-transparent text-gray-800 placeholder-gray-400"
+              autoComplete="email"
+              autoFocus
+            />
+
+            <button
+              onClick={handleSendMagicLink}
+              disabled={isLoading || !email}
+              className="w-full bg-[#FF5069] hover:bg-[#FF3050] disabled:bg-gray-300 text-white font-semibold py-3 rounded-full transition-colors"
+            >
+              {isLoading ? "Sending..." : "Send Magic Link"}
+            </button>
+
+            <button
+              onClick={handleClose}
+              disabled={isLoading}
+              className="mt-4 text-gray-400 hover:text-gray-600 transition-colors text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {view === "magic-sent" && (
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-4">
+              <svg
+                className="w-16 h-16 text-[#FF5069]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl font-semibold text-gray-800 mb-3">Check Your Email</h2>
+
+            <p className="text-gray-500 mb-1">
+              We sent a sign-in link to
+            </p>
+            <p className="text-gray-800 font-semibold mb-4">{email}</p>
+
+            <p className="text-gray-400 text-sm mb-6">
+              Click the link in the email to sign in instantly. The link expires in 1 hour.
+            </p>
+
+            <button
+              onClick={handleResendMagicLink}
+              disabled={isLoading}
+              className="text-[#FF5069] font-semibold hover:underline transition-colors mb-4"
+            >
+              {isLoading ? "Sending..." : "Resend Magic Link"}
+            </button>
+
+            <button
+              onClick={() => setView("email-input")}
+              disabled={isLoading}
+              className="text-gray-400 hover:text-gray-600 transition-colors text-sm"
+            >
+              Use a different email
+            </button>
+          </div>
+        )}
       </div>
-    </Modal>
+    </div>
   );
 }
 
