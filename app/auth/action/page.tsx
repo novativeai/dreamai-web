@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import {
@@ -16,7 +16,7 @@ import toast from "react-hot-toast";
 type ActionMode = "verifyEmail" | "resetPassword" | "recoverEmail" | null;
 type Status = "loading" | "success" | "error" | "reset-form";
 
-export default function AuthActionPage() {
+function AuthActionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -271,5 +271,19 @@ export default function AuthActionPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthActionPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white flex items-center justify-center p-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FF5069]"></div>
+        </div>
+      }
+    >
+      <AuthActionContent />
+    </Suspense>
   );
 }
