@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { deleteUser, signOut } from "firebase/auth";
+import { doc, deleteDoc, getDoc } from "firebase/firestore";
 import { DELETION_REASONS, SUPPORT_EMAIL, APP_NAME, BRAND_COLOR } from "@/constants";
 import { submitDeletionFeedback } from "@/services/feedbackService";
 import { DeletionFlowView } from "@/types";
@@ -116,7 +117,39 @@ export default function DeleteAccountScreen() {
         );
       }
 
-      // Delete user account
+      // Step 1: Check for active subscription and cancel it
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        const subscriptionId = userData.subscription_id;
+
+        // Cancel Paddle subscription if one exists
+        if (subscriptionId) {
+          try {
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://dreamai-production.up.railway.app";
+            await fetch(`${API_BASE_URL}/cancel-subscription`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                subscription_id: subscriptionId,
+                firebase_uid: user.uid
+              }),
+            });
+            console.log("Subscription cancelled successfully");
+          } catch (subError) {
+            console.error("Error cancelling subscription:", subError);
+            // Continue with deletion even if subscription cancellation fails
+          }
+        }
+
+        // Step 2: Delete Firestore document
+        await deleteDoc(userRef);
+        console.log("Firestore document deleted");
+      }
+
+      // Step 3: Delete Firebase Auth user
       await deleteUser(user);
       setView("success");
     } catch (error: unknown) {
