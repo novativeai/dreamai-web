@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import { handleFirebaseError } from "@/utils/errors";
-import { getUserVerificationStatus, getNextRoute } from "@/services/userService";
+import { getUserVerificationStatus, getNextRoute, createUserProfile } from "@/services/userService";
 import { ROUTES } from "@/utils/routes";
 import toast from "react-hot-toast";
 
@@ -62,6 +62,10 @@ export default function EmailLinkAuthPage() {
 
       // Navigate to the appropriate screen
       const user = result.user;
+
+      // Create or update user profile in Firestore (ensures credits are initialized)
+      await createUserProfile(user.uid, user.email || emailToUse, user.displayName);
+
       const verificationStatus = await getUserVerificationStatus(user.uid);
       const nextRoute = getNextRoute(user, verificationStatus);
 

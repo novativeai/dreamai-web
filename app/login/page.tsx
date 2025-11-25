@@ -6,7 +6,7 @@ import Image from "next/image";
 import { auth } from "@/lib/firebase";
 import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from "firebase/auth";
 import { handleFirebaseError } from "@/utils/errors";
-import { getUserVerificationStatus, getNextRoute } from "@/services/userService";
+import { getUserVerificationStatus, getNextRoute, createUserProfile } from "@/services/userService";
 import { ROUTES } from "@/utils/routes";
 import { LOGIN_BACKGROUND_IMAGE, MAIL_ICON, GOOGLE_ICON } from "@/constants";
 import { SignupSigninModal } from "@/components/auth/SignupSigninModal";
@@ -27,6 +27,9 @@ export default function LoginScreen() {
 
     try {
       isNavigatingRef.current = true;
+
+      // Create or update user profile in Firestore (ensures credits are initialized)
+      await createUserProfile(user.uid, user.email || "", user.displayName);
 
       const verificationStatus = await getUserVerificationStatus(user.uid);
       const nextRoute = getNextRoute(user, verificationStatus);
@@ -75,8 +78,18 @@ export default function LoginScreen() {
       const { trackLogin } = await import("@/services/analyticsService");
       await trackLogin("google", user.uid);
     } catch (error: unknown) {
-      const errorMessage = handleFirebaseError(error);
-      toast.error(errorMessage);
+      // Silently handle user-initiated cancellations (not an error)
+      const firebaseError = error as { code?: string };
+      if (
+        firebaseError.code === "auth/popup-closed-by-user" ||
+        firebaseError.code === "auth/cancelled-popup-request"
+      ) {
+        // User closed the popup intentionally - no error toast needed
+        console.log("Google sign-in cancelled by user");
+      } else {
+        const errorMessage = handleFirebaseError(error);
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoadingGoogle(false);
     }

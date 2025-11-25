@@ -98,6 +98,7 @@ export interface PaddleCreditPackage {
 }
 
 // Credit context types
+// Note: Credit deduction is handled by backend only - frontend cannot modify credits
 export interface CreditContextValue {
   credits: number;
   isPremium: boolean;
@@ -108,7 +109,6 @@ export interface CreditContextValue {
   creditPackages: PaddleCreditPackage[];
   isLoading: boolean;
   refreshCredits: () => Promise<void>;
-  decrementCredits: (amount: number) => Promise<void>;
   refreshProducts: () => Promise<void>;
 }
 

@@ -125,11 +125,11 @@ export default function DeleteAccountScreen() {
         const userData = userSnap.data();
         const subscriptionId = userData.subscription_id;
 
-        // Cancel Paddle subscription if one exists
+        // Cancel Paddle subscription if one exists (must succeed before account deletion)
         if (subscriptionId) {
+          const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://dreamai-production.up.railway.app";
           try {
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://dreamai-production.up.railway.app";
-            await fetch(`${API_BASE_URL}/cancel-subscription`, {
+            const response = await fetch(`${API_BASE_URL}/cancel-subscription`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -137,10 +137,24 @@ export default function DeleteAccountScreen() {
                 firebase_uid: user.uid
               }),
             });
+
+            const result = await response.json();
+
+            // Block deletion if subscription cancellation failed
+            if (!response.ok || result.success === false) {
+              const errorMsg = result.error || "Failed to cancel subscription";
+              console.error("Subscription cancellation failed:", errorMsg);
+              toast.error("Unable to cancel your subscription. Please try again or contact support.");
+              setLoadingOperation(null);
+              return;
+            }
+
             console.log("Subscription cancelled successfully");
           } catch (subError) {
             console.error("Error cancelling subscription:", subError);
-            // Continue with deletion even if subscription cancellation fails
+            toast.error("Could not reach payment service. Please check your connection and try again.");
+            setLoadingOperation(null);
+            return;
           }
         }
 

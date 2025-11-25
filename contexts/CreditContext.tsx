@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { auth, db } from "@/lib/firebase";
-import { doc, onSnapshot, updateDoc, increment as firestoreIncrement } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { User } from "firebase/auth";
 import { CreditContextValue, PaddleSubscription, PaddleCreditPackage } from "@/types";
 import toast from "react-hot-toast";
@@ -181,27 +181,8 @@ export function CreditProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const decrementCredits = useCallback(
-    async (amount: number = 1) => {
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-
-      try {
-        const userRef = doc(db, "users", user.uid);
-        await updateDoc(userRef, {
-          credits: firestoreIncrement(-amount),
-        });
-
-        // Optimistically update local state
-        setCredits((prev) => Math.max(0, prev - amount));
-      } catch (error) {
-        console.error("Error decrementing credits:", error);
-        throw error;
-      }
-    },
-    [user]
-  );
+  // Note: Credit deduction is handled by backend only (see /generate endpoint)
+  // Frontend cannot modify credits due to Firestore security rules
 
   const value: CreditContextValue = {
     credits,
@@ -213,7 +194,6 @@ export function CreditProvider({ children }: { children: ReactNode }) {
     creditPackages,
     isLoading,
     refreshCredits,
-    decrementCredits,
     refreshProducts: fetchProducts,
   };
 
