@@ -569,12 +569,12 @@ export default function GeneratorScreen() {
                 </button>
               </div>
 
-              <div className="relative w-full aspect-square max-w-md mx-auto bg-gray-100 rounded-2xl overflow-hidden">
-                <Image
+              <div className="relative w-full max-w-md mx-auto bg-gray-100 rounded-2xl overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={generatedImageUrl}
                   alt="Generated"
-                  fill
-                  className="object-cover"
+                  className="w-full h-auto"
                 />
 
                 {/* Download and Share Icons - Bottom Left */}
