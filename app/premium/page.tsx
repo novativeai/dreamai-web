@@ -93,8 +93,8 @@ export default function PremiumScreen() {
         return;
       }
 
-      // Create checkout with backend
-      const checkoutData = await createCheckout(selectedPlanId, user.uid);
+      // Create checkout with backend (auth token sent automatically)
+      const checkoutData = await createCheckout(selectedPlanId);
 
       // Validate response
       if (!checkoutData.transaction_id) {

@@ -7,6 +7,7 @@ import { deleteUser, signOut } from "firebase/auth";
 import { doc, deleteDoc, getDoc } from "firebase/firestore";
 import { DELETION_REASONS, SUPPORT_EMAIL, APP_NAME, BRAND_COLOR } from "@/constants";
 import { submitDeletionFeedback } from "@/services/feedbackService";
+import { cancelSubscription } from "@/lib/api";
 import { DeletionFlowView } from "@/types";
 import { ROUTES } from "@/utils/routes";
 import toast from "react-hot-toast";
@@ -127,21 +128,11 @@ export default function DeleteAccountScreen() {
 
         // Cancel Paddle subscription if one exists (must succeed before account deletion)
         if (subscriptionId) {
-          const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://dreamai-production.up.railway.app";
           try {
-            const response = await fetch(`${API_BASE_URL}/cancel-subscription`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                subscription_id: subscriptionId,
-                firebase_uid: user.uid
-              }),
-            });
-
-            const result = await response.json();
+            const result = await cancelSubscription();
 
             // Block deletion if subscription cancellation failed
-            if (!response.ok || result.success === false) {
+            if (result.success === false) {
               const errorMsg = result.error || "Failed to cancel subscription";
               console.error("Subscription cancellation failed:", errorMsg);
               toast.error("Unable to cancel your subscription. Please try again or contact support.");

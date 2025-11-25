@@ -59,8 +59,8 @@ export default function BuyCreditsScreen() {
         return;
       }
 
-      // Create checkout with backend
-      const checkoutData = await createCheckout(selectedPackageId, user.uid);
+      // Create checkout with backend (auth token sent automatically)
+      const checkoutData = await createCheckout(selectedPackageId);
 
       // Validate response
       if (!checkoutData.transaction_id) {
