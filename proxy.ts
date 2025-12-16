@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Next.js Middleware for Route Protection
+ * Next.js Proxy for Route Protection (Next.js 16+)
  *
- * This middleware runs on the edge before any page is rendered, providing
+ * This proxy runs on the Node.js runtime before any page is rendered, providing
  * server-side route protection and authentication checks.
  */
 
@@ -13,7 +13,7 @@ const publicRoutes = ['/login'];
 const authRequiredRoutes = ['/age', '/age-blocked', '/terms-service', '/generator-tips'];
 const protectedRoutes = ['/generator', '/premium', '/buy-credits', '/settings', '/profile'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow access to public routes always

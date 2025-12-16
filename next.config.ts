@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   },
   // Enable React strict mode
   reactStrictMode: true,
+  // Turbopack configuration (Next.js 16+)
+  turbopack: {
+    resolveExtensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
+  },
 };
 
 export default nextConfig;
