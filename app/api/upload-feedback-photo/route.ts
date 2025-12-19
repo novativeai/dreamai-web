@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-const r2Client = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT!,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-});
-
-const BUCKET_NAME = process.env.R2_BUCKET_NAME!;
-const PUBLIC_URL = process.env.R2_PUBLIC_URL!;
-
 export async function POST(request: NextRequest) {
   try {
+    // Initialize R2 client inside handler to avoid build-time errors
+    const r2Client = new S3Client({
+      region: 'auto',
+      endpoint: process.env.R2_ENDPOINT!,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+      },
+    });
+
+    const BUCKET_NAME = process.env.R2_BUCKET_NAME!;
+    const PUBLIC_URL = process.env.R2_PUBLIC_URL!;
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const userId = formData.get('userId') as string | null;
