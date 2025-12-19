@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await resend.emails.send({
       from: 'DreamAI <noreply@akmldsfmasdfmma.space>',
-      to: ['novativeai@gmail.com'],
+      to: ['posteopost@posteo.de'],
       subject: `Account Deletion Feedback - ${reasonText}`,
       html: emailHtml,
     });
