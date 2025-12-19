@@ -7,7 +7,7 @@ import { deleteUser, signOut } from "firebase/auth";
 import { doc, deleteDoc, getDoc } from "firebase/firestore";
 import { DELETION_REASONS, SUPPORT_EMAIL, APP_NAME, BRAND_COLOR } from "@/constants";
 import { submitDeletionFeedback, uploadFeedbackPhoto } from "@/services/feedbackService";
-import { cancelSubscription } from "@/lib/api";
+import { archiveDeletedUser, cancelSubscription } from "@/lib/api";
 import { DeletionFlowView } from "@/types";
 import { ROUTES } from "@/utils/routes";
 import toast from "react-hot-toast";
@@ -184,13 +184,23 @@ export default function DeleteAccountScreen() {
           }
         }
 
-        // Step 2: Delete Firestore document
+        // Step 2: Archive user data (credits, trial status) before deletion
+        setLoadingStep("Archiving account data...");
+        try {
+          await archiveDeletedUser();
+          console.log("User data archived successfully");
+        } catch (archiveError) {
+          // Log but don't block deletion - this is a nice-to-have feature
+          console.error("Error archiving user data:", archiveError);
+        }
+
+        // Step 3: Delete Firestore document
         setLoadingStep("Removing account data...");
         await deleteDoc(userRef);
         console.log("Firestore document deleted");
       }
 
-      // Step 3: Delete Firebase Auth user
+      // Step 4: Delete Firebase Auth user
       setLoadingStep("Deleting account...");
       await deleteUser(user);
       setView("success");

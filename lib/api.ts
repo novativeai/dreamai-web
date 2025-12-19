@@ -130,4 +130,44 @@ export const getSubscriptionStatus = async (userId: string) => {
   return response.data;
 };
 
+/**
+ * Archive user data before account deletion.
+ * Saves credits and trial status for potential restoration.
+ * AUTHENTICATION REQUIRED: Sends Firebase ID token in Authorization header.
+ */
+export const archiveDeletedUser = async () => {
+  const token = await getAuthToken();
+
+  const response = await apiClient.post(
+    "/archive-deleted-user",
+    {},
+    {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
+};
+
+/**
+ * Check if user has a deleted account with credits to restore.
+ * Called after account creation to restore previous credits.
+ * AUTHENTICATION REQUIRED: Sends Firebase ID token in Authorization header.
+ */
+export const checkDeletedAccount = async () => {
+  const token = await getAuthToken();
+
+  const response = await apiClient.post(
+    "/check-deleted-account",
+    {},
+    {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
+};
+
 export default apiClient;

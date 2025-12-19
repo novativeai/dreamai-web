@@ -2,6 +2,7 @@ import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "fire
 import { db, auth } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { UserProfile } from "@/types";
+import { checkDeletedAccount } from "@/lib/api";
 
 export interface UserVerificationStatus {
   ageVerified: boolean;
@@ -101,6 +102,18 @@ export async function createUserProfile(userId: string, email: string, displayNa
       };
 
       await setDoc(userRef, newProfile);
+
+      // Check if this user previously had an account and restore their credits/trial status
+      try {
+        const restorationResult = await checkDeletedAccount();
+        if (restorationResult.restored) {
+          console.log("Previous account data restored:", restorationResult);
+        }
+      } catch (restoreError) {
+        // Don't fail profile creation if restoration fails
+        console.error("Error checking for deleted account:", restoreError);
+      }
+
       return newProfile;
     } else {
       // Update existing profile
