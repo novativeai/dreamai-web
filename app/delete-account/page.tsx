@@ -28,6 +28,7 @@ export default function DeleteAccountScreen() {
   const [feedbackText, setFeedbackText] = useState("");
   const [attachedPhotos, setAttachedPhotos] = useState<AttachedPhoto[]>([]);
   const [loadingOperation, setLoadingOperation] = useState<LoadingOperation>(null);
+  const [loadingStep, setLoadingStep] = useState<string>("");
   const [showRequiresRecentLoginMessage, setShowRequiresRecentLoginMessage] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [pendingDeletion, setPendingDeletion] = useState<{ submitFeedback: boolean } | null>(null);
@@ -103,10 +104,12 @@ export default function DeleteAccountScreen() {
     setPendingDeletion(null);
 
     setLoadingOperation(submitFeedback ? "submit" : "deleteOnly");
+    setLoadingStep("Preparing...");
     const user = auth.currentUser;
     if (!user) {
       toast.error("No user is currently signed in. Please log in again.");
       setLoadingOperation(null);
+      setLoadingStep("");
       return;
     }
 
@@ -117,6 +120,7 @@ export default function DeleteAccountScreen() {
         // Upload photos to R2 if any are attached
         let photoUrls: string[] = [];
         if (attachedPhotos.length > 0) {
+          setLoadingStep("Uploading photos...");
           try {
             const uploadPromises = attachedPhotos.map((photo) =>
               uploadFeedbackPhoto(photo.file, user.uid)
@@ -130,6 +134,7 @@ export default function DeleteAccountScreen() {
           }
         }
 
+        setLoadingStep("Submitting feedback...");
         await submitDeletionFeedback(
           user.uid,
           selectedReasonId,
@@ -140,6 +145,7 @@ export default function DeleteAccountScreen() {
       }
 
       // Step 1: Check for active subscription and cancel it
+      setLoadingStep("Checking subscription...");
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -149,6 +155,7 @@ export default function DeleteAccountScreen() {
 
         // Cancel Paddle subscription if one exists (must succeed before account deletion)
         if (subscriptionId) {
+          setLoadingStep("Canceling subscription...");
           try {
             const result = await cancelSubscription();
 
@@ -158,6 +165,7 @@ export default function DeleteAccountScreen() {
               console.error("Subscription cancellation failed:", errorMsg);
               toast.error("Unable to cancel your subscription. Please try again or contact support.");
               setLoadingOperation(null);
+              setLoadingStep("");
               return;
             }
 
@@ -166,16 +174,19 @@ export default function DeleteAccountScreen() {
             console.error("Error cancelling subscription:", subError);
             toast.error("Could not reach payment service. Please check your connection and try again.");
             setLoadingOperation(null);
+            setLoadingStep("");
             return;
           }
         }
 
         // Step 2: Delete Firestore document
+        setLoadingStep("Removing account data...");
         await deleteDoc(userRef);
         console.log("Firestore document deleted");
       }
 
       // Step 3: Delete Firebase Auth user
+      setLoadingStep("Deleting account...");
       await deleteUser(user);
       setView("success");
     } catch (error: unknown) {
@@ -188,6 +199,7 @@ export default function DeleteAccountScreen() {
       }
     } finally {
       setLoadingOperation(null);
+      setLoadingStep("");
     }
   };
 
@@ -325,8 +337,9 @@ export default function DeleteAccountScreen() {
           className="w-full bg-black text-white font-bold text-base py-4 rounded-full mb-4 hover:bg-gray-800 transition-colors disabled:opacity-50"
         >
           {loadingOperation === "submit" ? (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-2">
               <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+              {loadingStep && <span className="text-sm">{loadingStep}</span>}
             </div>
           ) : (
             "Submit & delete account"
@@ -485,8 +498,9 @@ export default function DeleteAccountScreen() {
           style={{ backgroundColor: BRAND_COLOR }}
         >
           {loadingOperation === "submit" ? (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-2">
               <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+              {loadingStep && <span className="text-sm">{loadingStep}</span>}
             </div>
           ) : (
             "Submit & delete account"
@@ -607,8 +621,9 @@ export default function DeleteAccountScreen() {
           style={{ backgroundColor: BRAND_COLOR }}
         >
           {loadingOperation === "submit" ? (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-2">
               <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+              {loadingStep && <span className="text-sm">{loadingStep}</span>}
             </div>
           ) : (
             "Submit & delete account"
@@ -654,8 +669,9 @@ export default function DeleteAccountScreen() {
           className="w-full bg-gray-200 text-gray-800 font-bold text-base py-4 rounded-full hover:bg-gray-300 transition-colors disabled:opacity-50"
         >
           {loadingOperation ? (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-2">
               <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-gray-800"></div>
+              {loadingStep && <span className="text-sm">{loadingStep}</span>}
             </div>
           ) : (
             "Delete my account"
@@ -782,8 +798,9 @@ export default function DeleteAccountScreen() {
               style={{ backgroundColor: BRAND_COLOR }}
             >
               {loadingOperation ? (
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                  {loadingStep && <span className="text-sm">{loadingStep}</span>}
                 </div>
               ) : (
                 "Yes, Delete My Account"
