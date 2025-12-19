@@ -35,3 +35,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Backend (separate repo)
+backend/
+
+# Playwright MCP
+.playwright-mcp/

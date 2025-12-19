@@ -6,7 +6,7 @@ import { auth, db } from "@/lib/firebase";
 import { deleteUser, signOut } from "firebase/auth";
 import { doc, deleteDoc, getDoc } from "firebase/firestore";
 import { DELETION_REASONS, SUPPORT_EMAIL, APP_NAME, BRAND_COLOR } from "@/constants";
-import { submitDeletionFeedback } from "@/services/feedbackService";
+import { submitDeletionFeedback, uploadFeedbackPhoto } from "@/services/feedbackService";
 import { cancelSubscription } from "@/lib/api";
 import { DeletionFlowView } from "@/types";
 import { ROUTES } from "@/utils/routes";
@@ -110,11 +110,29 @@ export default function DeleteAccountScreen() {
     try {
       if (submitFeedback && selectedReasonId) {
         const selectedReason = DELETION_REASONS.find((r) => r.id === selectedReasonId);
+
+        // Upload photos to R2 if any are attached
+        let photoUrls: string[] = [];
+        if (attachedPhotos.length > 0) {
+          try {
+            const uploadPromises = attachedPhotos.map((photo) =>
+              uploadFeedbackPhoto(photo.file, user.uid)
+            );
+            photoUrls = await Promise.all(uploadPromises);
+            console.log("Photos uploaded successfully:", photoUrls);
+          } catch (uploadError) {
+            console.error("Error uploading photos:", uploadError);
+            // Continue with feedback submission even if photo upload fails
+            toast.error("Could not upload photos, but your feedback will still be submitted.");
+          }
+        }
+
         await submitDeletionFeedback(
           user.uid,
           selectedReasonId,
           selectedReason?.text || "",
-          feedbackText
+          feedbackText,
+          photoUrls
         );
       }
 

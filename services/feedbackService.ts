@@ -6,18 +6,44 @@ export interface DeletionFeedback {
   reasonId: string;
   reasonText: string;
   feedbackText?: string;
+  photoUrls?: string[];
   timestamp: FieldValue;
 }
 
 /**
+ * Upload a photo to R2 storage via API route
+ */
+export async function uploadFeedbackPhoto(
+  file: File,
+  userId: string
+): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('userId', userId);
+
+  const response = await fetch('/api/upload-feedback-photo', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to upload photo');
+  }
+
+  const result = await response.json();
+  return result.url;
+}
+
+/**
  * Submit deletion feedback to Firestore
- * Note: Photos are not uploaded to storage yet as it's not enabled
  */
 export async function submitDeletionFeedback(
   userId: string,
   reasonId: string,
   reasonText: string,
-  feedbackText?: string
+  feedbackText?: string,
+  photoUrls?: string[]
 ): Promise<void> {
   try {
     const feedbackRef = collection(db, "feedback");
@@ -27,6 +53,7 @@ export async function submitDeletionFeedback(
       reasonId,
       reasonText,
       feedbackText: feedbackText || "",
+      photoUrls: photoUrls || [],
       timestamp: serverTimestamp(),
     };
 
