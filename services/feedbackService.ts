@@ -36,7 +36,33 @@ export async function uploadFeedbackPhoto(
 }
 
 /**
- * Submit deletion feedback to Firestore
+ * Send feedback email via API route
+ */
+async function sendFeedbackEmail(
+  userId: string,
+  reasonText: string,
+  feedbackText: string,
+  photoUrls: string[]
+): Promise<void> {
+  const response = await fetch('/api/send-feedback-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      reasonText,
+      feedbackText,
+      photoUrls,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to send feedback email');
+  }
+}
+
+/**
+ * Submit deletion feedback to Firestore and send email notification
  */
 export async function submitDeletionFeedback(
   userId: string,
@@ -57,7 +83,20 @@ export async function submitDeletionFeedback(
       timestamp: serverTimestamp(),
     };
 
-    await addDoc(feedbackRef, feedbackData);
+    // Submit to Firestore and send email in parallel
+    await Promise.all([
+      addDoc(feedbackRef, feedbackData),
+      sendFeedbackEmail(
+        userId,
+        reasonText,
+        feedbackText || "",
+        photoUrls || []
+      ).catch((err) => {
+        // Don't fail the whole operation if email fails
+        console.error("Failed to send feedback email:", err);
+      }),
+    ]);
+
     console.log("Deletion feedback submitted successfully");
   } catch (error) {
     console.error("Error submitting deletion feedback:", error);
