@@ -34,7 +34,10 @@ export default function DeleteAccountScreen() {
 
   const handleGoBack = () => {
     if (loadingOperation) return;
-    if (view === "reasonSelection") {
+    if (view === "success") {
+      // After account deletion, go to login screen
+      router.replace(ROUTES.LOGIN);
+    } else if (view === "reasonSelection") {
       router.back();
     } else {
       setView("reasonSelection");
