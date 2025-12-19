@@ -157,22 +157,27 @@ export default function DeleteAccountScreen() {
         if (subscriptionId) {
           setLoadingStep("Canceling subscription...");
           try {
+            console.log("Attempting to cancel subscription:", subscriptionId);
             const result = await cancelSubscription();
+            console.log("Cancel subscription response:", JSON.stringify(result, null, 2));
 
             // Block deletion if subscription cancellation failed
             if (result.success === false) {
-              const errorMsg = result.error || "Failed to cancel subscription";
-              console.error("Subscription cancellation failed:", errorMsg);
-              toast.error("Unable to cancel your subscription. Please try again or contact support.");
+              const errorMsg = result.error || result.message || "Failed to cancel subscription";
+              console.error("Subscription cancellation failed:", errorMsg, result);
+              toast.error(`Unable to cancel subscription: ${errorMsg}`);
               setLoadingOperation(null);
               setLoadingStep("");
               return;
             }
 
             console.log("Subscription cancelled successfully");
-          } catch (subError) {
-            console.error("Error cancelling subscription:", subError);
-            toast.error("Could not reach payment service. Please check your connection and try again.");
+          } catch (subError: unknown) {
+            // Extract error details from axios error response
+            const axiosError = subError as { response?: { data?: { error?: string; message?: string } }; message?: string };
+            const errorDetail = axiosError.response?.data?.error || axiosError.response?.data?.message || axiosError.message || "Unknown error";
+            console.error("Error cancelling subscription:", errorDetail, subError);
+            toast.error(`Could not cancel subscription: ${errorDetail}`);
             setLoadingOperation(null);
             setLoadingStep("");
             return;

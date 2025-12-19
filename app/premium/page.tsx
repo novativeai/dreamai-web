@@ -9,6 +9,7 @@ import { initPaddle, setCheckoutContext } from "@/lib/paddle";
 import { createCheckout } from "@/lib/api";
 import { ROUTES } from "@/utils/routes";
 import { PREMIUM_FEATURES, PREMIUM_DISCLAIMER, PREMIUM_ICON } from "@/constants";
+import { cancelSubscription } from "@/lib/api";
 import toast from "react-hot-toast";
 import { MdOutlineCollections, MdBlock, MdWorkspacePremium } from "react-icons/md";
 import { IoInfiniteOutline, IoRocketOutline } from "react-icons/io5";
@@ -31,6 +32,7 @@ export default function PremiumScreen() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [activeSegment, setActiveSegment] = useState<"Premium" | "Premium+">("Premium");
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -137,6 +139,34 @@ export default function PremiumScreen() {
   };
 
   const handleClose = () => router.back();
+
+  const handleCancelSubscription = async () => {
+    if (isCancelling) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your current billing period."
+    );
+
+    if (!confirmed) return;
+
+    setIsCancelling(true);
+    try {
+      const result = await cancelSubscription();
+
+      if (result.success === false) {
+        toast.error(result.error || "Failed to cancel subscription. Please try again.");
+        return;
+      }
+
+      toast.success("Subscription cancelled successfully. You will retain access until the end of your billing period.");
+      refreshCredits();
+    } catch (error) {
+      console.error("Error cancelling subscription:", error);
+      toast.error("Failed to cancel subscription. Please try again or contact support.");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white text-black flex flex-col">
@@ -344,6 +374,19 @@ export default function PremiumScreen() {
                 <span>{selectedPlan ? `Continue with ${selectedPlan.name}` : "Select a Plan"}</span>
               )}
             </button>
+          )}
+
+          {/* Cancel Subscription - Only show for premium users */}
+          {isPremium && premiumStatus === "active" && (
+            <div className="text-center mt-3">
+              <button
+                onClick={handleCancelSubscription}
+                disabled={isCancelling}
+                className="text-xs text-gray-400 underline hover:text-gray-600 transition-colors disabled:opacity-50"
+              >
+                {isCancelling ? "Cancelling..." : "Cancel subscription"}
+              </button>
+            </div>
           )}
         </div>
       </div>

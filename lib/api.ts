@@ -100,16 +100,25 @@ export const createCustomerPortal = async () => {
 export const cancelSubscription = async () => {
   const token = await getAuthToken();
 
-  const response = await apiClient.post(
-    "/cancel-subscription",
-    {},
-    {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-      },
+  try {
+    const response = await apiClient.post(
+      "/cancel-subscription",
+      {},
+      {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: unknown) {
+    // Re-throw with response data if available for better error messages
+    const axiosError = error as { response?: { data?: unknown }; message?: string };
+    if (axiosError.response?.data) {
+      throw { ...axiosError, responseData: axiosError.response.data };
     }
-  );
-  return response.data;
+    throw error;
+  }
 };
 
 /**
