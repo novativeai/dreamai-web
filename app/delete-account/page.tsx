@@ -208,19 +208,20 @@ export default function DeleteAccountScreen() {
         }
       }
 
-      // Step 3: Delete Firebase Auth user FIRST
-      // This step can fail with "requires-recent-login" error
-      // We do this BEFORE deleting Firestore data to avoid data loss if it fails
-      setLoadingStep("Deleting account...");
-      await deleteUser(user);
-
-      // Step 4: Delete Firestore document ONLY after Auth deletion succeeds
-      // This ensures we don't lose user data if Auth deletion fails
+      // Step 3: Delete Firestore document FIRST (while still authenticated)
+      // Must happen before Auth deletion because Firestore rules require valid auth token
+      // Data is already archived, so it's safe to delete
       if (userSnap.exists()) {
         setLoadingStep("Removing account data...");
         await deleteDoc(userRef);
         console.log("Firestore document deleted");
       }
+
+      // Step 4: Delete Firebase Auth user LAST
+      // This step can fail with "requires-recent-login" error
+      // Done after Firestore deletion because it invalidates the auth token
+      setLoadingStep("Deleting account...");
+      await deleteUser(user);
 
       setView("success");
     } catch (error: unknown) {
