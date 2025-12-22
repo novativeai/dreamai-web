@@ -84,13 +84,13 @@ export async function createUserProfile(userId: string, email: string, displayNa
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      // CRITICAL: Create new user profile with 0 credits initially
-      // Credits will be set after restoration check to prevent race condition exploits
+      // Create new user profile with 5 free credits
+      // If user had a previous account, restoration will SET (not add) their archived credits
       const newProfile: Partial<UserProfile> = {
         uid: userId,
         email,
         displayName: displayName || null,
-        credits: 0, // START WITH ZERO - will be set after restoration check
+        credits: 5, // Default 5 free credits for new users
         isPremium: false,
         premium_status: null,
         subscription_id: null,
@@ -105,38 +105,25 @@ export async function createUserProfile(userId: string, email: string, displayNa
       await setDoc(userRef, newProfile);
 
       // Register device for trial abuse prevention
-      let isTrialBlocked = false;
       try {
         const deviceResult = await registerDevice();
         console.log("Device registered:", deviceResult);
-        isTrialBlocked = deviceResult.trialBlocked || false;
       } catch (deviceError) {
         // Don't fail profile creation if device registration fails
         console.error("Error registering device:", deviceError);
       }
 
       // Check if this user previously had an account and restore their credits/trial status
-      let creditsRestored = false;
+      // IMPORTANT: Restoration uses SET (not increment) to prevent credit exploitation
       try {
         const restorationResult = await checkDeletedAccount();
         if (restorationResult.found && restorationResult.restored) {
           console.log("Previous account data restored:", restorationResult);
-          creditsRestored = true;
         }
       } catch (restoreError) {
         // Don't fail profile creation if restoration fails
         console.error("Error checking for deleted account:", restoreError);
       }
-
-      // If no credits were restored, give default 5 credits (unless trial-blocked)
-      if (!creditsRestored) {
-        const defaultCredits = isTrialBlocked ? 0 : 5;
-        await updateDoc(userRef, { credits: defaultCredits });
-        console.log(`Set default credits: ${defaultCredits} (trialBlocked: ${isTrialBlocked})`);
-      }
-
-      // Update the profile object to reflect final state
-      newProfile.credits = creditsRestored ? undefined : (isTrialBlocked ? 0 : 5);
 
       return newProfile;
     } else {

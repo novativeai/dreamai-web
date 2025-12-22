@@ -41,3 +41,6 @@ backend/
 
 # Playwright MCP
 .playwright-mcp/
+
+# Admin credentials
+.admin-keys
