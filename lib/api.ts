@@ -152,25 +152,39 @@ export const createCheckout = async (priceId: string) => {
     );
     return response.data;
   } catch (error: unknown) {
-    // Extract trial blocked error details
+    // Extract trial blocked error details from FastAPI HTTPException
     interface AxiosErrorResponse {
       response?: {
         status?: number;
-        data?: TrialBlockedError | { detail?: TrialBlockedError | string };
+        data?: {
+          detail?: {
+            code?: string;
+            reason?: string;
+            message?: string;
+          } | string;
+        };
       };
     }
     const axiosError = error as AxiosErrorResponse;
-    if (axiosError.response?.status === 403 && axiosError.response.data) {
-      const responseData = axiosError.response.data;
-      // Handle both direct TrialBlockedError and wrapped { detail: TrialBlockedError }
-      const detail = 'detail' in responseData ? responseData.detail : responseData;
-      if (typeof detail === 'object' && detail && 'code' in detail && detail.code === 'TRIAL_NOT_AVAILABLE') {
-        const trialError = new Error(detail.message) as Error & { code: string; reason: string };
+
+    // Check for 403 Forbidden (trial blocked)
+    if (axiosError.response?.status === 403) {
+      const detail = axiosError.response.data?.detail;
+
+      // FastAPI returns { detail: { code, reason, message } } for trial blocked
+      if (typeof detail === 'object' && detail && detail.code === 'TRIAL_NOT_AVAILABLE') {
+        const trialError = new Error(detail.message || 'Trial not available') as Error & { code: string; reason: string };
         trialError.code = detail.code;
-        trialError.reason = detail.reason;
+        trialError.reason = detail.reason || 'unknown';
         throw trialError;
       }
+
+      // Handle string error message
+      if (typeof detail === 'string') {
+        throw new Error(detail);
+      }
     }
+
     throw error;
   }
 };

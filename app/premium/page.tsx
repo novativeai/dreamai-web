@@ -141,7 +141,21 @@ export default function PremiumScreen() {
           : "Free trial not available. This email has already been used for a free trial.";
         toast.error(message, { duration: 5000 });
       } else {
-        toast.error("Failed to start checkout. Please try again.");
+        // Check for axios error with trial blocked in response
+        const axiosError = error as { response?: { status?: number; data?: { detail?: { code?: string; reason?: string; message?: string } | string } } };
+        if (axiosError.response?.status === 403) {
+          const detail = axiosError.response.data?.detail;
+          if (typeof detail === 'object' && detail?.code === 'TRIAL_NOT_AVAILABLE') {
+            const message = detail.reason === 'device'
+              ? "Free trial not available. This device has already been used for a free trial."
+              : "Free trial not available. This email has already been used for a free trial.";
+            toast.error(message, { duration: 5000 });
+          } else {
+            toast.error(typeof detail === 'string' ? detail : "Free trial not available for this account.", { duration: 5000 });
+          }
+        } else {
+          toast.error("Failed to start checkout. Please try again.");
+        }
       }
     } finally {
       setIsPurchasing(false);
