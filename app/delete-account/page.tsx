@@ -185,6 +185,7 @@ export default function DeleteAccountScreen() {
         }
 
         // Step 2: Archive user data (credits, trial status) before deletion
+        // This is non-destructive - just saves a copy for potential restoration
         setLoadingStep("Archiving account data...");
         try {
           await archiveDeletedUser();
@@ -193,16 +194,22 @@ export default function DeleteAccountScreen() {
           // Log but don't block deletion - this is a nice-to-have feature
           console.error("Error archiving user data:", archiveError);
         }
+      }
 
-        // Step 3: Delete Firestore document
+      // Step 3: Delete Firebase Auth user FIRST
+      // This step can fail with "requires-recent-login" error
+      // We do this BEFORE deleting Firestore data to avoid data loss if it fails
+      setLoadingStep("Deleting account...");
+      await deleteUser(user);
+
+      // Step 4: Delete Firestore document ONLY after Auth deletion succeeds
+      // This ensures we don't lose user data if Auth deletion fails
+      if (userSnap.exists()) {
         setLoadingStep("Removing account data...");
         await deleteDoc(userRef);
         console.log("Firestore document deleted");
       }
 
-      // Step 4: Delete Firebase Auth user
-      setLoadingStep("Deleting account...");
-      await deleteUser(user);
       setView("success");
     } catch (error: unknown) {
       const firebaseError = error as { code?: string; message?: string };
