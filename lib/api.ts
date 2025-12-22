@@ -216,10 +216,16 @@ export const cancelSubscription = async () => {
 
 /**
  * Get user's subscription status.
- * No authentication required (uses userId in path).
+ * AUTHENTICATION REQUIRED: Sends Firebase ID token in Authorization header.
  */
-export const getSubscriptionStatus = async (userId: string) => {
-  const response = await apiClient.get(`/subscription-status/${userId}`);
+export const getSubscriptionStatus = async () => {
+  const token = await getAuthToken();
+
+  const response = await apiClient.get("/subscription-status", {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+    },
+  });
   return response.data;
 };
 
