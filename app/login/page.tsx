@@ -77,6 +77,9 @@ export default function LoginScreen() {
       // Import analytics tracking dynamically
       const { trackLogin } = await import("@/services/analyticsService");
       await trackLogin("google", user.uid);
+
+      // Keep loading state active - onAuthStateChanged will handle navigation
+      // Loading indicator will stay visible until navigation completes
     } catch (error: unknown) {
       // Silently handle user-initiated cancellations (not an error)
       const firebaseError = error as { code?: string };
@@ -90,7 +93,7 @@ export default function LoginScreen() {
         const errorMessage = handleFirebaseError(error);
         toast.error(errorMessage);
       }
-    } finally {
+      // Only reset loading on error/cancellation, not on success
       setIsLoadingGoogle(false);
     }
   };
@@ -175,13 +178,16 @@ export default function LoginScreen() {
             <span>Sign in with Email</span>
           </button>
 
-          {isLoadingGoogle && (
-            <div className="mt-4 flex justify-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-brand"></div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Full-screen loading overlay for Google sign-in */}
+      {isLoadingGoogle && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand mb-4"></div>
+          <p className="text-white text-sm">Signing in...</p>
+        </div>
+      )}
 
       <SignupSigninModal
         isOpen={isModalVisible}
