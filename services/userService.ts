@@ -3,6 +3,7 @@ import { db, auth } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { UserProfile } from "@/types";
 import { checkDeletedAccount, registerDevice } from "@/lib/api";
+import toast from "react-hot-toast";
 
 export interface UserVerificationStatus {
   ageVerified: boolean;
@@ -121,8 +122,12 @@ export async function createUserProfile(userId: string, email: string, displayNa
           console.log("Previous account data restored:", restorationResult);
         }
       } catch (restoreError) {
-        // Don't fail profile creation if restoration fails
+        // Don't fail profile creation if restoration fails, but warn user
         console.error("Error checking for deleted account:", restoreError);
+        // Only show warning if this might be a returning user (network error, etc.)
+        toast.error("Could not check for previous account data. If you had credits before, please contact support.", {
+          duration: 6000,
+        });
       }
 
       return newProfile;
