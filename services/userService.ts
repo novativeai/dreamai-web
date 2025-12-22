@@ -84,12 +84,13 @@ export async function createUserProfile(userId: string, email: string, displayNa
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      // Create new user profile
+      // CRITICAL: Create new user profile with 0 credits initially
+      // Credits will be set after restoration check to prevent race condition exploits
       const newProfile: Partial<UserProfile> = {
         uid: userId,
         email,
         displayName: displayName || null,
-        credits: 5, // Free credits for new users
+        credits: 0, // START WITH ZERO - will be set after restoration check
         isPremium: false,
         premium_status: null,
         subscription_id: null,
@@ -104,24 +105,38 @@ export async function createUserProfile(userId: string, email: string, displayNa
       await setDoc(userRef, newProfile);
 
       // Register device for trial abuse prevention
+      let isTrialBlocked = false;
       try {
         const deviceResult = await registerDevice();
         console.log("Device registered:", deviceResult);
+        isTrialBlocked = deviceResult.trialBlocked || false;
       } catch (deviceError) {
         // Don't fail profile creation if device registration fails
         console.error("Error registering device:", deviceError);
       }
 
       // Check if this user previously had an account and restore their credits/trial status
+      let creditsRestored = false;
       try {
         const restorationResult = await checkDeletedAccount();
-        if (restorationResult.restored) {
+        if (restorationResult.found && restorationResult.restored) {
           console.log("Previous account data restored:", restorationResult);
+          creditsRestored = true;
         }
       } catch (restoreError) {
         // Don't fail profile creation if restoration fails
         console.error("Error checking for deleted account:", restoreError);
       }
+
+      // If no credits were restored, give default 5 credits (unless trial-blocked)
+      if (!creditsRestored) {
+        const defaultCredits = isTrialBlocked ? 0 : 5;
+        await updateDoc(userRef, { credits: defaultCredits });
+        console.log(`Set default credits: ${defaultCredits} (trialBlocked: ${isTrialBlocked})`);
+      }
+
+      // Update the profile object to reflect final state
+      newProfile.credits = creditsRestored ? undefined : (isTrialBlocked ? 0 : 5);
 
       return newProfile;
     } else {
@@ -146,45 +161,30 @@ export async function createUserProfile(userId: string, email: string, displayNa
 
 /**
  * Update user's age verification status
+ * SECURITY: Profile must already exist - this prevents credit bypass exploits
  */
 export async function updateAgeVerification(userId: string, verified: boolean, dateOfBirth: string): Promise<void> {
   try {
     const userRef = doc(db, "users", userId);
     const userSnap = await getDoc(userRef);
 
-    // If user document doesn't exist, create it first
+    // SECURITY: Profile must exist before age verification
+    // This prevents bypassing the proper profile creation flow that handles credits
     if (!userSnap.exists()) {
-      const user = auth.currentUser;
-      await setDoc(userRef, {
-        uid: userId,
-        email: user?.email || null,
-        displayName: user?.displayName || null,
-        credits: 5, // Free credits for new users
-        isPremium: false,
-        premium_status: null,
-        subscription_id: null,
-        subscription_status: null,
-        paddle_customer_id: null,
+      throw new Error("User profile must exist before age verification. Please refresh and try again.");
+    }
+
+    // Update existing document
+    await setDoc(
+      userRef,
+      {
         ageVerified: verified,
-        termsAccepted: false,
         dateOfBirth,
         ageVerifiedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
-    } else {
-      // Update existing document
-      await setDoc(
-        userRef,
-        {
-          ageVerified: verified,
-          dateOfBirth,
-          ageVerifiedAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
+      },
+      { merge: true }
+    );
   } catch (error) {
     console.error("Error updating age verification:", error);
     throw error;
@@ -193,43 +193,29 @@ export async function updateAgeVerification(userId: string, verified: boolean, d
 
 /**
  * Update user's terms acceptance status
+ * SECURITY: Profile must already exist - this prevents credit bypass exploits
  */
 export async function updateTermsAcceptance(userId: string, accepted: boolean): Promise<void> {
   try {
     const userRef = doc(db, "users", userId);
     const userSnap = await getDoc(userRef);
 
-    // If user document doesn't exist, create it first
+    // SECURITY: Profile must exist before terms acceptance
+    // This prevents bypassing the proper profile creation flow that handles credits
     if (!userSnap.exists()) {
-      const user = auth.currentUser;
-      await setDoc(userRef, {
-        uid: userId,
-        email: user?.email || null,
-        displayName: user?.displayName || null,
-        credits: 5, // Free credits for new users
-        isPremium: false,
-        premium_status: null,
-        subscription_id: null,
-        subscription_status: null,
-        paddle_customer_id: null,
-        ageVerified: false,
+      throw new Error("User profile must exist before accepting terms. Please refresh and try again.");
+    }
+
+    // Update existing document
+    await setDoc(
+      userRef,
+      {
         termsAccepted: accepted,
         termsAcceptedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
-    } else {
-      // Update existing document
-      await setDoc(
-        userRef,
-        {
-          termsAccepted: accepted,
-          termsAcceptedAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
+      },
+      { merge: true }
+    );
   } catch (error) {
     console.error("Error updating terms acceptance:", error);
     throw error;

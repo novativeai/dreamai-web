@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { deleteUser, signOut } from "firebase/auth";
-import { doc, deleteDoc, getDoc } from "firebase/firestore";
+import { doc, deleteDoc, getDoc, updateDoc } from "firebase/firestore";
 import { DELETION_REASONS, SUPPORT_EMAIL, APP_NAME, BRAND_COLOR } from "@/constants";
 import { submitDeletionFeedback, uploadFeedbackPhoto } from "@/services/feedbackService";
 import { archiveDeletedUser, cancelSubscription } from "@/lib/api";
@@ -185,14 +185,26 @@ export default function DeleteAccountScreen() {
         }
 
         // Step 2: Archive user data (credits, trial status) before deletion
-        // This is non-destructive - just saves a copy for potential restoration
-        setLoadingStep("Archiving account data...");
-        try {
-          await archiveDeletedUser();
-          console.log("User data archived successfully");
-        } catch (archiveError) {
-          // Log but don't block deletion - this is a nice-to-have feature
-          console.error("Error archiving user data:", archiveError);
+        // Only archive if not already archived (prevents exploit during failed deletions)
+        const alreadyArchived = userData.deletionArchived === true;
+
+        if (!alreadyArchived) {
+          setLoadingStep("Archiving account data...");
+          try {
+            await archiveDeletedUser();
+            console.log("User data archived successfully");
+
+            // Mark as archived to prevent re-archiving if Auth deletion fails
+            await updateDoc(userRef, {
+              deletionArchived: true,
+              deletionArchivedAt: new Date(),
+            });
+          } catch (archiveError) {
+            // Log but don't block deletion - this is a nice-to-have feature
+            console.error("Error archiving user data:", archiveError);
+          }
+        } else {
+          console.log("User data already archived, skipping re-archive");
         }
       }
 
