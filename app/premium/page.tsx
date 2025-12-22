@@ -277,7 +277,7 @@ export default function PremiumScreen() {
                       key={plan.id}
                       onClick={() => !isActivePlan && setSelectedPlanId(plan.id)}
                       disabled={isActivePlan}
-                      className={`flex-shrink-0 w-40 min-h-[140px] p-4 border-2 rounded-2xl transition-all relative ${
+                      className={`flex-shrink-0 w-40 min-h-[140px] p-4 border-2 rounded-2xl transition-all relative overflow-hidden ${
                         isActivePlan
                           ? "border-[#10b981] bg-gradient-to-br from-emerald-50 to-green-50"
                           : selectedPlanId === plan.id
@@ -310,14 +310,14 @@ export default function PremiumScreen() {
 
                       {/* Active Badge */}
                       {isActivePlan && (
-                        <div className="absolute bottom-0 left-0 right-0 py-1.5 text-center text-xs font-bold rounded-b-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm">
+                        <div className="absolute bottom-0 left-0 right-0 py-1.5 text-center text-xs font-bold bg-linear-to-r from-emerald-500 to-green-500 text-white shadow-sm">
                           Active
                         </div>
                       )}
 
                       {/* Recommended Badge - Only show if not active */}
                       {!isActivePlan && plan.isRecommended && (
-                        <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-xs font-semibold rounded-b-2xl ${
+                        <div className={`absolute bottom-0 left-0 right-0 py-1.5 text-center text-xs font-semibold ${
                           selectedPlanId === plan.id ? "bg-[#FF5069] text-white" : "bg-gray-200 text-gray-600"
                         }`}>
                           Recommended
