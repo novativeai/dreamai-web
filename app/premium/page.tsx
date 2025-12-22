@@ -8,7 +8,7 @@ import { useCredits } from "@/contexts/CreditContext";
 import { initPaddle, setCheckoutContext } from "@/lib/paddle";
 import { createCheckout } from "@/lib/api";
 import { ROUTES } from "@/utils/routes";
-import { PREMIUM_FEATURES, PREMIUM_DISCLAIMER, PREMIUM_ICON } from "@/constants";
+import { getPremiumFeatures, PREMIUM_DISCLAIMER, PREMIUM_ICON } from "@/constants";
 import { cancelSubscription } from "@/lib/api";
 import toast from "react-hot-toast";
 import { MdOutlineCollections, MdBlock, MdWorkspacePremium } from "react-icons/md";
@@ -320,8 +320,8 @@ export default function PremiumScreen() {
                 </div>
               )}
 
-              {/* Features */}
-              {PREMIUM_FEATURES.map((feature) => {
+              {/* Features - Dynamic based on selected tier */}
+              {getPremiumFeatures(activeSegment === "Premium+" ? "premium_plus" : "premium").map((feature) => {
                 const IconComponent = getIconComponent(feature.iconName);
                 return (
                   <div key={feature.id} className="flex items-center gap-4 mb-6">

@@ -353,13 +353,62 @@ export const PRICING_PLANS: PricingPlan[] = [
   },
 ];
 
+// --- Premium Credit Limits ---
+// Monthly credits that reset with subscription billing cycle
+export const PREMIUM_CREDITS = 80;
+export const PREMIUM_PLUS_CREDITS = 120;
+
+// Dynamic premium features based on tier
+export const getPremiumFeatures = (tier: 'premium' | 'premium_plus'): PremiumFeature[] => {
+  const credits = tier === 'premium_plus' ? PREMIUM_PLUS_CREDITS : PREMIUM_CREDITS;
+
+  return [
+    {
+      id: "feat_more_pics",
+      iconLibrary: 'MaterialCommunityIcons',
+      iconName: "image-multiple-outline",
+      title: "Generate more pictures",
+      description: `Create up to ${credits} images per month - because creativity should have no limits.`,
+    },
+    {
+      id: "feat_printout_limit",
+      iconLibrary: 'Ionicons',
+      iconName: "infinite-outline",
+      title: "Printout without limit",
+      description: "Generate images with all effects and styles.",
+    },
+    {
+      id: "feat_faster",
+      iconLibrary: 'Ionicons',
+      iconName: "rocket-outline",
+      title: "Faster than everyone else",
+      description: "Your pictures are generated faster. You go through the VIP entrance.",
+    },
+    {
+      id: "feat_no_ads",
+      iconLibrary: 'MaterialCommunityIcons',
+      iconName: "advertisements-off",
+      title: "No advertising",
+      description: "Just you, your imagination - and your perfect self.",
+    },
+    {
+      id: "feat_priority_support",
+      iconLibrary: 'MaterialCommunityIcons',
+      iconName: "crown-outline",
+      title: "Support with priority",
+      description: "Your requests land at the top.",
+    },
+  ];
+};
+
+// Legacy static export for backwards compatibility
 export const PREMIUM_FEATURES: PremiumFeature[] = [
   {
     id: "feat_more_pics",
     iconLibrary: 'MaterialCommunityIcons',
     iconName: "image-multiple-outline",
     title: "Generate more pictures",
-    description: "Create up to 40 images per month - because creativity should have no limits.",
+    description: `Create up to ${PREMIUM_CREDITS} images per month - because creativity should have no limits.`,
   },
   {
     id: "feat_printout_limit",

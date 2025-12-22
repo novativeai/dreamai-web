@@ -194,9 +194,13 @@ export default function GeneratorScreen() {
       return;
     }
 
-    // Check credits
-    if (!isPremium && credits < 1) {
-      toast.error("No credits remaining. Purchase more or upgrade to Premium!");
+    // Check credits (applies to all users including premium)
+    if (credits < 1) {
+      if (isPremium) {
+        toast.error("No credits remaining this month. Credits reset with your billing cycle.");
+      } else {
+        toast.error("No credits remaining. Purchase more or upgrade to Premium!");
+      }
       router.push(ROUTES.PREMIUM);
       return;
     }
@@ -311,14 +315,12 @@ export default function GeneratorScreen() {
           </div>
 
           <div className="flex items-center gap-3">
-            {!isPremium && (
-              <button
-                onClick={() => router.push(ROUTES.BUY_CREDITS)}
-                className="bg-gray-100 px-4 py-2 rounded-full flex items-center gap-2 hover:bg-gray-200 transition-colors cursor-pointer"
-              >
-                <span className="text-sm font-semibold">{credits}</span>
-              </button>
-            )}
+            <button
+              onClick={() => router.push(isPremium ? ROUTES.PREMIUM : ROUTES.BUY_CREDITS)}
+              className="bg-gray-100 px-4 py-2 rounded-full flex items-center gap-2 hover:bg-gray-200 transition-colors cursor-pointer"
+            >
+              <span className="text-sm font-semibold">{credits}</span>
+            </button>
 
             <motion.button
               onClick={() => router.push(ROUTES.PREMIUM)}
