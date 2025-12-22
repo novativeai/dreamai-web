@@ -2,7 +2,7 @@ import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "fire
 import { db, auth } from "@/lib/firebase";
 import { User } from "firebase/auth";
 import { UserProfile } from "@/types";
-import { checkDeletedAccount } from "@/lib/api";
+import { checkDeletedAccount, registerDevice } from "@/lib/api";
 
 export interface UserVerificationStatus {
   ageVerified: boolean;
@@ -103,6 +103,15 @@ export async function createUserProfile(userId: string, email: string, displayNa
 
       await setDoc(userRef, newProfile);
 
+      // Register device for trial abuse prevention
+      try {
+        const deviceResult = await registerDevice();
+        console.log("Device registered:", deviceResult);
+      } catch (deviceError) {
+        // Don't fail profile creation if device registration fails
+        console.error("Error registering device:", deviceError);
+      }
+
       // Check if this user previously had an account and restore their credits/trial status
       try {
         const restorationResult = await checkDeletedAccount();
@@ -116,6 +125,13 @@ export async function createUserProfile(userId: string, email: string, displayNa
 
       return newProfile;
     } else {
+      // Existing user - still register device for trial prevention
+      try {
+        await registerDevice();
+      } catch (deviceError) {
+        console.error("Error registering device for existing user:", deviceError);
+      }
+
       // Update existing profile
       await updateDoc(userRef, {
         updatedAt: new Date(),

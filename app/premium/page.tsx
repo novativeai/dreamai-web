@@ -130,9 +130,19 @@ export default function PremiumScreen() {
       });
 
       toast.success("Redirecting to checkout...");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Purchase error:", error);
-      toast.error("Failed to start checkout. Please try again.");
+
+      // Handle trial blocked error with specific message
+      const trialError = error as { code?: string; reason?: string; message?: string };
+      if (trialError.code === 'TRIAL_NOT_AVAILABLE') {
+        const message = trialError.reason === 'device'
+          ? "Free trial not available. This device has already been used for a free trial."
+          : "Free trial not available. This email has already been used for a free trial.";
+        toast.error(message, { duration: 5000 });
+      } else {
+        toast.error("Failed to start checkout. Please try again.");
+      }
     } finally {
       setIsPurchasing(false);
     }
