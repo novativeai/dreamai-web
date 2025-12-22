@@ -153,9 +153,17 @@ export const createCheckout = async (priceId: string) => {
     return response.data;
   } catch (error: unknown) {
     // Extract trial blocked error details
-    const axiosError = error as { response?: { status?: number; data?: TrialBlockedError | { detail?: TrialBlockedError | string } } };
-    if (axiosError.response?.status === 403) {
-      const detail = axiosError.response.data?.detail || axiosError.response.data;
+    interface AxiosErrorResponse {
+      response?: {
+        status?: number;
+        data?: TrialBlockedError | { detail?: TrialBlockedError | string };
+      };
+    }
+    const axiosError = error as AxiosErrorResponse;
+    if (axiosError.response?.status === 403 && axiosError.response.data) {
+      const responseData = axiosError.response.data;
+      // Handle both direct TrialBlockedError and wrapped { detail: TrialBlockedError }
+      const detail = 'detail' in responseData ? responseData.detail : responseData;
       if (typeof detail === 'object' && detail && 'code' in detail && detail.code === 'TRIAL_NOT_AVAILABLE') {
         const trialError = new Error(detail.message) as Error & { code: string; reason: string };
         trialError.code = detail.code;
